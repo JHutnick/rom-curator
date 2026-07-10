@@ -1,7 +1,7 @@
 import { readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
-import type { ConsoleId, MatchConfidence } from '../shared/types';
-import { CONSOLES, consoleForExtension } from './consoleConfig';
+import type { ConsoleId, MatchConfidence, RomRoot } from '../shared/types';
+import { CONSOLES, extensionBelongsToConsole } from './consoleConfig';
 import { crc32File } from './hasher';
 import { normalizeFilenameKey, stripBracketTags, type DatLookup } from './datParser';
 import { readZipEntries } from './zipReader';
@@ -21,16 +21,22 @@ export interface ScannedFile {
 
 const IGNORED_DIR_NAMES = new Set(['.git', '$RECYCLE.BIN', 'System Volume Information']);
 
-/** Recursively walks root folders, classifying files (including zip-wrapped roms) by extension into known consoles. */
-export async function scanRoots(roots: string[]): Promise<ScannedFile[]> {
+/**
+ * Recursively walks each root folder, tagging every file found with that root's
+ * declared console. Extensions like .bin/.cue/.iso are shared across several
+ * disc-based consoles (PS1/PS2/Saturn/Dreamcast), so — unlike a single-console
+ * setup — extension alone can't disambiguate; the folder's assigned console is
+ * authoritative, and the extension check just filters out non-rom files.
+ */
+export async function scanRoots(roots: RomRoot[]): Promise<ScannedFile[]> {
   const found: ScannedFile[] = [];
   for (const root of roots) {
-    await walk(root, found);
+    await walk(root.path, root.consoleId, found);
   }
   return found;
 }
 
-async function walk(dir: string, found: ScannedFile[]): Promise<void> {
+async function walk(dir: string, consoleId: ConsoleId, found: ScannedFile[]): Promise<void> {
   let entries;
   try {
     entries = await readdir(dir, { withFileTypes: true });
@@ -41,7 +47,7 @@ async function walk(dir: string, found: ScannedFile[]): Promise<void> {
   for (const entry of entries) {
     if (entry.isDirectory()) {
       if (IGNORED_DIR_NAMES.has(entry.name)) continue;
-      await walk(path.join(dir, entry.name), found);
+      await walk(path.join(dir, entry.name), consoleId, found);
       continue;
     }
     if (!entry.isFile()) continue;
@@ -50,18 +56,17 @@ async function walk(dir: string, found: ScannedFile[]): Promise<void> {
     const ext = path.extname(entry.name);
 
     if (ext.toLowerCase() === '.zip') {
-      await collectZipRoms(filePath, found);
+      await collectZipRoms(filePath, consoleId, found);
       continue;
     }
 
-    const consoleDef = consoleForExtension(ext);
-    if (!consoleDef) continue;
+    if (!extensionBelongsToConsole(ext, consoleId)) continue;
 
     const info = await stat(filePath);
     found.push({
       path: filePath,
       filename: entry.name,
-      consoleId: consoleDef.id,
+      consoleId,
       sizeBytes: info.size,
     });
   }
@@ -73,7 +78,7 @@ async function walk(dir: string, found: ScannedFile[]): Promise<void> {
  * CRC32 of the *uncompressed* entry — the same value DAT files key on — so
  * this reads that directly instead of decompressing and re-hashing.
  */
-async function collectZipRoms(zipPath: string, found: ScannedFile[]): Promise<void> {
+async function collectZipRoms(zipPath: string, consoleId: ConsoleId, found: ScannedFile[]): Promise<void> {
   let entries;
   try {
     entries = await readZipEntries(zipPath);
@@ -84,13 +89,12 @@ async function collectZipRoms(zipPath: string, found: ScannedFile[]): Promise<vo
   for (const zipEntry of entries) {
     if (zipEntry.filename.endsWith('/')) continue; // directory entry
     const innerExt = path.extname(zipEntry.filename);
-    const consoleDef = consoleForExtension(innerExt);
-    if (!consoleDef) continue; // not a rom (readme, scan image, etc.)
+    if (!extensionBelongsToConsole(innerExt, consoleId)) continue; // not a rom (readme, scan image, etc.)
 
     found.push({
       path: zipPath,
       filename: path.basename(zipEntry.filename),
-      consoleId: consoleDef.id,
+      consoleId,
       sizeBytes: zipEntry.uncompressedSize,
       knownCrc32: zipEntry.crc32,
     });

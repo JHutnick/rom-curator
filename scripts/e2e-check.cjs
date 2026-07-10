@@ -134,7 +134,12 @@ async function main() {
   const ps1Lookup = parseDat(ps1Dat);
   const emptyLookup = { byCrc32: new Map(), byFilename: new Map() };
 
-  const files = await scanRoots([tmp]);
+  // Each root now declares its own console (extensions like .cue/.bin are shared
+  // across several disc consoles, so folder-level assignment is authoritative).
+  const files = await scanRoots([
+    { path: snesDir, consoleId: 'snes' },
+    { path: ps1Dir, consoleId: 'ps1' },
+  ]);
   assert(files.length === 5, `scanRoots found 5 files (got ${files.length})`);
 
   const lookupFor = (consoleId) =>

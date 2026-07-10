@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { describe, expect, it, afterEach } from 'vitest';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { identifyFile, type ScannedFile } from '../scanner';
+import { identifyFile, scanRoots, type ScannedFile } from '../scanner';
 import { parseDat } from '../datParser';
 
 const SNES_DAT = `<?xml version="1.0"?>
@@ -75,5 +75,51 @@ describe('identifyFile', () => {
     expect(result.crc32).toBeTruthy(); // was actually hashed from disk, not just carried over
 
     await rm(dir, { recursive: true, force: true });
+  });
+});
+
+describe('scanRoots — shared-extension disambiguation across disc consoles', () => {
+  let tmpDir: string;
+
+  afterEach(async () => {
+    if (tmpDir) await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('assigns .iso files to the console declared by each root, not a global guess', async () => {
+    tmpDir = await mkdtemp(path.join(tmpdir(), 'rom-curator-multiconsole-'));
+    const ps2Dir = path.join(tmpDir, 'ps2');
+    const gcDir = path.join(tmpDir, 'gamecube');
+    const satDir = path.join(tmpDir, 'saturn');
+    await mkdir(ps2Dir, { recursive: true });
+    await mkdir(gcDir, { recursive: true });
+    await mkdir(satDir, { recursive: true });
+
+    // Same extension, same-looking filename, three different consoles — this is
+    // exactly the case pure extension-sniffing can't handle.
+    await writeFile(path.join(ps2Dir, 'Game.iso'), Buffer.from('ps2'));
+    await writeFile(path.join(gcDir, 'Game.iso'), Buffer.from('gc'));
+    await writeFile(path.join(satDir, 'Game.iso'), Buffer.from('sat'));
+
+    const files = await scanRoots([
+      { path: ps2Dir, consoleId: 'ps2' },
+      { path: gcDir, consoleId: 'gamecube' },
+      { path: satDir, consoleId: 'saturn' },
+    ]);
+
+    expect(files).toHaveLength(3);
+    const byConsole = Object.fromEntries(files.map((f) => [f.consoleId, f.path]));
+    expect(byConsole.ps2).toBe(path.join(ps2Dir, 'Game.iso'));
+    expect(byConsole.gamecube).toBe(path.join(gcDir, 'Game.iso'));
+    expect(byConsole.saturn).toBe(path.join(satDir, 'Game.iso'));
+  });
+
+  it('skips a file whose extension does not belong to its root-declared console', async () => {
+    tmpDir = await mkdtemp(path.join(tmpdir(), 'rom-curator-multiconsole-'));
+    // A Dreamcast-only extension (.cdi) sitting in a folder declared as PS2 — should
+    // not show up, since .cdi isn't in PS2's extension list.
+    await writeFile(path.join(tmpDir, 'Wrong Format.cdi'), Buffer.from('x'));
+
+    const files = await scanRoots([{ path: tmpDir, consoleId: 'ps2' }]);
+    expect(files).toHaveLength(0);
   });
 });

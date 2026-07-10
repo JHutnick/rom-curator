@@ -92,6 +92,23 @@ h1, h2 { font-weight: 600; }
   font-size: 13px;
   border-bottom: 1px solid var(--border);
 }
+.rom-root-list li { gap: 10px; }
+.rom-root-path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rom-root-list select {
+  flex: none;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
 .folder-picker {
   display: flex;
   justify-content: space-between;

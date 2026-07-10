@@ -1,5 +1,13 @@
 import type { ConsoleId } from '../shared/types';
 
+// Deliberately no `node:path` import here — this module is also bundled into
+// the renderer (Vite, browser context) by src/renderer/ReviewScreen.tsx and
+// SetupScreen.tsx, which have no Node built-ins available.
+function basenameOf(p: string): string {
+  const parts = p.split(/[\\/]/).filter(Boolean);
+  return parts[parts.length - 1] ?? '';
+}
+
 export interface ConsoleDef {
   id: ConsoleId;
   label: string;
@@ -46,14 +54,68 @@ export const CONSOLES: ConsoleDef[] = [
     datFile: 'Nintendo - Game Boy Advance.dat',
   },
   {
+    id: 'gb',
+    label: 'Game Boy',
+    extensions: ['.gb'],
+    hashOnScan: true,
+    igdbPlatformId: 33,
+    datFile: 'Nintendo - Game Boy.dat',
+  },
+  {
+    id: 'gbc',
+    label: 'Game Boy Color',
+    extensions: ['.gbc'],
+    hashOnScan: true,
+    igdbPlatformId: 22,
+    datFile: 'Nintendo - Game Boy Color.dat',
+  },
+  {
+    id: 'nds',
+    label: 'Nintendo DS',
+    extensions: ['.nds'],
+    hashOnScan: true,
+    igdbPlatformId: 20,
+    datFile: 'Nintendo - Nintendo DS.dat',
+  },
+  {
     id: 'genesis',
     label: 'Genesis / Mega Drive',
-    // .bin deliberately excluded: it's ambiguous with PS1 bin/cue dumps, and Genesis
-    // dumps in practice are almost always .md/.gen/.smd.
-    extensions: ['.md', '.gen', '.smd'],
+    extensions: ['.md', '.gen', '.smd', '.bin'],
     hashOnScan: true,
     igdbPlatformId: 29,
     datFile: 'Sega - Mega Drive - Genesis.dat',
+  },
+  {
+    id: 'mastersystem',
+    label: 'Master System',
+    extensions: ['.sms'],
+    hashOnScan: true,
+    igdbPlatformId: 64,
+    datFile: 'Sega - Master System - Mark III.dat',
+  },
+  {
+    id: 'gamegear',
+    label: 'Game Gear',
+    extensions: ['.gg'],
+    hashOnScan: true,
+    igdbPlatformId: 35,
+    datFile: 'Sega - Game Gear.dat',
+  },
+  {
+    id: 'pcengine',
+    label: 'PC Engine / TurboGrafx-16',
+    extensions: ['.pce'],
+    hashOnScan: true,
+    igdbPlatformId: 86,
+    datFile: 'NEC - PC Engine - TurboGrafx-16.dat',
+  },
+  {
+    id: 'atari2600',
+    label: 'Atari 2600',
+    extensions: ['.a26'],
+    hashOnScan: true,
+    igdbPlatformId: 59,
+    datFile: 'Atari - 2600.dat',
   },
   {
     id: 'ps1',
@@ -63,11 +125,98 @@ export const CONSOLES: ConsoleDef[] = [
     igdbPlatformId: 7,
     datFile: 'Sony - PlayStation.dat',
   },
+  {
+    id: 'ps2',
+    label: 'PlayStation 2',
+    extensions: ['.iso', '.bin', '.cue', '.chd'],
+    hashOnScan: false,
+    igdbPlatformId: 8,
+    datFile: 'Sony - PlayStation 2.dat',
+  },
+  {
+    id: 'gamecube',
+    label: 'GameCube',
+    // .rvz/.gcz are Dolphin's compressed disc formats — not what Redump's DAT
+    // catalogs, but filename-match doesn't care about container format, only
+    // the extension-stripped name, so these still resolve correctly.
+    extensions: ['.iso', '.rvz', '.gcz'],
+    hashOnScan: false,
+    igdbPlatformId: 21,
+    datFile: 'Nintendo - GameCube.dat',
+  },
+  {
+    id: 'dreamcast',
+    label: 'Dreamcast',
+    extensions: ['.cdi', '.gdi', '.chd'],
+    hashOnScan: false,
+    igdbPlatformId: 23,
+    datFile: 'Sega - Dreamcast.dat',
+  },
+  {
+    id: 'saturn',
+    label: 'Saturn',
+    extensions: ['.cue', '.bin', '.chd', '.iso'],
+    hashOnScan: false,
+    igdbPlatformId: 32,
+    datFile: 'Sega - Saturn.dat',
+  },
 ];
 
-export function consoleForExtension(ext: string): ConsoleDef | null {
-  const lower = ext.toLowerCase();
-  return CONSOLES.find((c) => c.extensions.includes(lower)) ?? null;
+/** Folder-basename hints for auto-suggesting a console when adding a ROM root
+ *  in Setup — matches the short names common ROM-set tools/collections use
+ *  (emulationstation, RetroArch playlists, etc.), including this app's own
+ *  labels normalized the same way. */
+const FOLDER_NAME_HINTS: Record<string, ConsoleId> = {
+  nes: 'nes',
+  snes: 'snes',
+  sfc: 'snes',
+  n64: 'n64',
+  gba: 'gba',
+  gb: 'gb',
+  gbc: 'gbc',
+  nds: 'nds',
+  ds: 'nds',
+  genesis: 'genesis',
+  megadrive: 'genesis',
+  md: 'genesis',
+  mastersystem: 'mastersystem',
+  sms: 'mastersystem',
+  gamegear: 'gamegear',
+  gg: 'gamegear',
+  pcengine: 'pcengine',
+  tg16: 'pcengine',
+  turbografx: 'pcengine',
+  turbografx16: 'pcengine',
+  atari2600: 'atari2600',
+  a2600: 'atari2600',
+  2600: 'atari2600',
+  psx: 'ps1',
+  ps1: 'ps1',
+  playstation: 'ps1',
+  ps2: 'ps2',
+  playstation2: 'ps2',
+  gamecube: 'gamecube',
+  gc: 'gamecube',
+  ngc: 'gamecube',
+  dreamcast: 'dreamcast',
+  dc: 'dreamcast',
+  saturn: 'saturn',
+};
+
+/** Normalizes a folder name for hint lookup: lowercase, strip non-alphanumerics. */
+function normalizeFolderHintKey(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+export function guessConsoleFromFolderName(folderPath: string): ConsoleId | null {
+  const base = normalizeFolderHintKey(basenameOf(folderPath));
+  return FOLDER_NAME_HINTS[base] ?? null;
+}
+
+/** True if the given file extension is one this console's dumps normally use. */
+export function extensionBelongsToConsole(ext: string, consoleId: ConsoleId): boolean {
+  const def = consoleById(consoleId);
+  return def.extensions.includes(ext.toLowerCase());
 }
 
 export function consoleById(id: ConsoleId): ConsoleDef {

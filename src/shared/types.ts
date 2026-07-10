@@ -1,4 +1,21 @@
-export type ConsoleId = 'nes' | 'snes' | 'n64' | 'gba' | 'genesis' | 'ps1';
+export type ConsoleId =
+  | 'nes'
+  | 'snes'
+  | 'n64'
+  | 'gba'
+  | 'genesis'
+  | 'ps1'
+  | 'atari2600'
+  | 'gb'
+  | 'gbc'
+  | 'mastersystem'
+  | 'gamegear'
+  | 'pcengine'
+  | 'nds'
+  | 'ps2'
+  | 'gamecube'
+  | 'dreamcast'
+  | 'saturn';
 
 export type MatchConfidence = 'hash-verified' | 'filename-match' | 'translated-hack' | 'unmatched';
 
@@ -33,8 +50,18 @@ export interface CuratedRom extends RomFile {
   status: CurationStatus;
 }
 
+/** A ROM folder tagged with the console it holds. Extensions like .bin/.cue/.iso
+ *  are shared across several disc-based consoles (PS1/PS2/Saturn/Dreamcast), so
+ *  scanning can't reliably guess the console from extension alone once there are
+ *  more than a couple of disc systems configured — the folder's declared console
+ *  is authoritative instead. */
+export interface RomRoot {
+  path: string;
+  consoleId: ConsoleId;
+}
+
 export interface AppConfig {
-  romRoots: string[];
+  romRoots: RomRoot[];
   datFolder: string;
   destFolder: string;
   twitchClientId: string;
