@@ -1,7 +1,7 @@
-import path from 'node:path';
 import { CONSOLES, consoleById } from './consoleConfig';
 import { scanRoots, identifyFile } from './scanner';
 import { parseDatFile, type DatLookup } from './datParser';
+import { findDatFilePath } from './datFileCheck';
 import { resolveTitle, type IgdbCredentials } from './igdbClient';
 import {
   upsertRom,
@@ -29,7 +29,9 @@ async function loadDatLookups(datFolder: string): Promise<Map<string, DatLookup>
   const lookups = new Map<string, DatLookup>();
   for (const def of CONSOLES) {
     try {
-      const lookup = await parseDatFile(path.join(datFolder, def.datFile));
+      const datPath = await findDatFilePath(datFolder, def);
+      if (!datPath) throw new Error('no matching DAT file');
+      const lookup = await parseDatFile(datPath);
       lookups.set(def.id, lookup);
     } catch {
       // DAT file not present for this console yet — identification falls back to

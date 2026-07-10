@@ -224,3 +224,23 @@ export function consoleById(id: ConsoleId): ConsoleDef {
   if (!def) throw new Error(`Unknown console id: ${id}`);
   return def;
 }
+
+/**
+ * No-Intro/Redump DAT downloads never keep the plain name we expect — they
+ * come as e.g. "Sony - PlayStation 2 - Datfile (11774) (2026-06-15
+ * 03-41-38).dat" or "Nintendo - ... (Parent-Clone) (20260614-014159).dat".
+ * Requiring an exact filename match means the user has to manually rename
+ * every single DAT file they ever download — so this matches by prefix
+ * instead, as long as whatever follows the expected base name looks like a
+ * metadata suffix (starts with " (" or " - ") rather than a genuinely
+ * different, longer console name that happens to share a prefix (e.g. "Game
+ * Boy" vs "Game Boy Advance", or "PlayStation" vs "PlayStation 2").
+ */
+export function matchesDatFilename(actualFilename: string, consoleDef: ConsoleDef): boolean {
+  const lower = actualFilename.toLowerCase();
+  if (!lower.endsWith('.dat')) return false;
+  const base = consoleDef.datFile.replace(/\.dat$/i, '').toLowerCase();
+  if (!lower.startsWith(base)) return false;
+  const rest = lower.slice(base.length, lower.length - '.dat'.length);
+  return rest === '' || rest.startsWith(' (') || rest.startsWith(' - ');
+}
