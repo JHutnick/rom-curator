@@ -3,6 +3,14 @@
   "version": "0.1.0",
   "description": "Identify, rate, and curate a retro ROM collection down to what's worth keeping.",
   "private": true,
+  "license": "MIT",
+  "author": "jhutn",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JHutnick/rom-curator.git"
+  },
+  "homepage": "https://github.com/JHutnick/rom-curator",
+  "bugs": "https://github.com/JHutnick/rom-curator/issues",
   "main": "dist-electron/electron/main.js",
   "scripts": {
     "dev": "node scripts/dev.mjs",
