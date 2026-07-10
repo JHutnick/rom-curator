@@ -1,6 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { computeDuplicateSkipIds, regionRank } from '../curationHelpers';
+import { computeDuplicateSkipIds, formatBytes, regionRank } from '../curationHelpers';
 import type { CuratedRom } from '../types';
+
+describe('formatBytes', () => {
+  it('formats sub-KB sizes in bytes', () => {
+    expect(formatBytes(512)).toBe('512B');
+  });
+
+  it('formats KB/MB/GB with one decimal under 10, whole numbers above', () => {
+    expect(formatBytes(2048)).toBe('2.0KB');
+    expect(formatBytes(1536 * 1024)).toBe('1.5MB');
+    expect(formatBytes(200 * 1024 * 1024)).toBe('200MB');
+    expect(formatBytes(1.5 * 1024 * 1024 * 1024)).toBe('1.5GB');
+  });
+});
 
 function rom(overrides: Partial<CuratedRom>): CuratedRom {
   return {

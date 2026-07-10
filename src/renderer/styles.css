@@ -134,15 +134,30 @@ button.active { background: var(--accent); color: white; }
 
 .toolbar {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 16px 24px;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 24px;
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   background: var(--bg);
   z-index: 1;
+}
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.toolbar-filters {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 .toolbar select, .toolbar input[type='text'], .toolbar input:not([type]) {
   background: var(--panel);
@@ -160,10 +175,33 @@ button.active { background: var(--accent); color: white; }
 }
 .spacer { flex: 1; }
 
-.rom-count {
-  padding: 8px 24px;
-  color: var(--text-dim);
+.stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 24px;
   font-size: 13px;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+}
+.stat {
+  font-weight: 600;
+}
+.stat-keep { color: var(--keep); }
+.stat-maybe { color: var(--maybe); }
+.stat-skip { color: var(--skip); }
+.stat-undecided { color: var(--text-dim); }
+
+.console-section-header {
+  padding: 18px 24px 4px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.console-section-count {
+  font-weight: 400;
+  color: var(--text-dim);
 }
 
 .export-banner {
@@ -269,7 +307,15 @@ button.active { background: var(--accent); color: white; }
 .rom-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
 .confidence { font-size: 11px; color: var(--text-dim); }
 .confidence-unmatched { color: var(--skip); }
-.rating { font-size: 12px; color: var(--maybe); margin-top: 4px; }
+.rom-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 12px;
+}
+.rating { color: var(--maybe); }
+.filesize { color: var(--text-dim); }
 .genres { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
 
 .rom-card-actions {

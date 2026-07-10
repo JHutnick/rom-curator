@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { CuratedRom, CurationStatus, ConsoleId, MatchConfidence } from '../shared/types';
 import { CONSOLES } from '../main/consoleConfig';
-import { computeDuplicateSkipIds } from '../shared/curationHelpers';
+import { computeDuplicateSkipIds, formatBytes } from '../shared/curationHelpers';
 import RomCard from './RomCard';
 
 interface Props {
@@ -56,87 +56,153 @@ export default function ReviewScreen({
       });
   }, [roms, consoleFilter, regionFilter, confidenceFilter, minRating, search]);
 
+  // Grouped by console when there's more than one system in view — a flat grid
+  // of thousands of cards across 17 consoles stops being scannable otherwise.
+  // Section order follows CONSOLES (a stable, meaningful order) rather than
+  // whatever order files happened to be scanned in.
+  const consoleGroups = useMemo(() => {
+    if (consoleFilter !== 'all') return null;
+    const byConsole = new Map<ConsoleId, CuratedRom[]>();
+    for (const rom of filtered) {
+      const group = byConsole.get(rom.consoleId);
+      if (group) group.push(rom);
+      else byConsole.set(rom.consoleId, [rom]);
+    }
+    return CONSOLES.filter((c) => byConsole.has(c.id)).map((c) => ({
+      console: c,
+      roms: byConsole.get(c.id)!,
+    }));
+  }, [filtered, consoleFilter]);
+
   const duplicateSkipIds = useMemo(() => computeDuplicateSkipIds(roms), [roms]);
-  const keepCount = roms.filter((r) => r.status === 'keep').length;
+
+  const stats = useMemo(() => {
+    let keep = 0;
+    let maybe = 0;
+    let skip = 0;
+    let undecided = 0;
+    let keptSizeBytes = 0;
+    for (const r of roms) {
+      if (r.status === 'keep') {
+        keep++;
+        keptSizeBytes += r.sizeBytes;
+      } else if (r.status === 'maybe') maybe++;
+      else if (r.status === 'skip') skip++;
+      else undecided++;
+    }
+    return { keep, maybe, skip, undecided, keptSizeBytes };
+  }, [roms]);
 
   return (
     <div className="review-screen">
       <div className="toolbar">
-        <select value={consoleFilter} onChange={(e) => setConsoleFilter(e.target.value as ConsoleId | 'all')}>
-          <option value="all">All consoles</option>
-          {CONSOLES.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.label}
-            </option>
-          ))}
-        </select>
+        <div className="toolbar-row toolbar-filters">
+          <select value={consoleFilter} onChange={(e) => setConsoleFilter(e.target.value as ConsoleId | 'all')}>
+            <option value="all">All consoles</option>
+            {CONSOLES.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+          </select>
 
-        <select value={regionFilter} onChange={(e) => setRegionFilter(e.target.value)}>
-          <option value="all">All regions</option>
-          {regions.map((r) => (
-            <option key={r} value={r}>
-              {r}
-            </option>
-          ))}
-        </select>
+          <select value={regionFilter} onChange={(e) => setRegionFilter(e.target.value)}>
+            <option value="all">All regions</option>
+            {regions.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
 
-        <input
-          placeholder="Search titles…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+          <select value={confidenceFilter} onChange={(e) => setConfidenceFilter(e.target.value as MatchConfidence | 'all')}>
+            <option value="all">Any match type</option>
+            <option value="hash-verified">Verified dump</option>
+            <option value="filename-match">Filename match</option>
+            <option value="translated-hack">Translated/Hacked</option>
+            <option value="unmatched">Unidentified</option>
+          </select>
 
-        <select value={confidenceFilter} onChange={(e) => setConfidenceFilter(e.target.value as MatchConfidence | 'all')}>
-          <option value="all">Any match type</option>
-          <option value="hash-verified">Verified dump</option>
-          <option value="filename-match">Filename match</option>
-          <option value="translated-hack">Translated/Hacked</option>
-          <option value="unmatched">Unidentified</option>
-        </select>
-
-        <label>
-          Min rating
           <input
-            type="range"
-            min={0}
-            max={100}
-            value={minRating}
-            onChange={(e) => setMinRating(Number(e.target.value))}
+            placeholder="Search titles…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
-          {minRating}
-        </label>
 
-        <button onClick={() => onBulkStatus(filtered.map((r) => r.id), 'keep')}>
-          Keep all shown ({filtered.length})
-        </button>
-        <button onClick={() => onBulkStatus(filtered.map((r) => r.id), 'skip')}>
-          Skip all shown ({filtered.length})
-        </button>
+          <label>
+            Min rating
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={minRating}
+              onChange={(e) => setMinRating(Number(e.target.value))}
+            />
+            {minRating}
+          </label>
+        </div>
 
+        <div className="toolbar-row toolbar-actions">
+          <div className="toolbar-group">
+            <button onClick={() => onBulkStatus(filtered.map((r) => r.id), 'keep')}>
+              Keep all shown ({filtered.length})
+            </button>
+            <button onClick={() => onBulkStatus(filtered.map((r) => r.id), 'skip')}>
+              Skip all shown ({filtered.length})
+            </button>
+            <button
+              disabled={duplicateSkipIds.length === 0}
+              title="Groups games by title (ignoring region/revision tags) and marks every copy except the best-region one as Skip — this includes games already marked Keep (e.g. from a bulk 'Keep all shown' pass). Only a rom you've already explicitly marked Skip is left untouched."
+              onClick={() => onBulkStatus(duplicateSkipIds, 'skip')}
+            >
+              Skip duplicates, keep best region ({duplicateSkipIds.length})
+            </button>
+          </div>
+
+          <span className="spacer" />
+
+          <div className="toolbar-group">
+            <button onClick={onEditSetup}>Edit setup…</button>
+            <button onClick={onRescan}>Rescan</button>
+            <button className="primary" disabled={stats.keep === 0 || exporting} onClick={onExport}>
+              {exporting ? 'Exporting…' : `Export ${stats.keep} kept`}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="stats-bar">
+        <span>
+          {filtered.length} of {roms.length} shown
+        </span>
+        <span className="stat stat-keep">{stats.keep} keep</span>
+        <span className="stat stat-maybe">{stats.maybe} maybe</span>
+        <span className="stat stat-skip">{stats.skip} skip</span>
+        <span className="stat stat-undecided">{stats.undecided} undecided</span>
         <span className="spacer" />
-
-        <button
-          disabled={duplicateSkipIds.length === 0}
-          title="Groups games by title (ignoring region/revision tags) and marks every copy except the best-region one as Skip — this includes games already marked Keep (e.g. from a bulk 'Keep all shown' pass). Only a rom you've already explicitly marked Skip is left untouched."
-          onClick={() => onBulkStatus(duplicateSkipIds, 'skip')}
-        >
-          Skip duplicates, keep best region ({duplicateSkipIds.length})
-        </button>
-
-        <button onClick={onEditSetup}>Edit setup…</button>
-        <button onClick={onRescan}>Rescan</button>
-        <button className="primary" disabled={keepCount === 0 || exporting} onClick={onExport}>
-          {exporting ? 'Exporting…' : `Export ${keepCount} kept`}
-        </button>
+        <span>{formatBytes(stats.keptSizeBytes)} to export</span>
       </div>
 
-      <div className="rom-count">{filtered.length} of {roms.length} games</div>
-
-      <div className="rom-grid">
-        {filtered.map((rom) => (
-          <RomCard key={rom.id} rom={rom} onStatusChange={onStatusChange} />
-        ))}
-      </div>
+      {consoleGroups ? (
+        consoleGroups.map(({ console: c, roms: consoleRoms }) => (
+          <section key={c.id}>
+            <h3 className="console-section-header">
+              {c.label} <span className="console-section-count">({consoleRoms.length})</span>
+            </h3>
+            <div className="rom-grid">
+              {consoleRoms.map((rom) => (
+                <RomCard key={rom.id} rom={rom} onStatusChange={onStatusChange} />
+              ))}
+            </div>
+          </section>
+        ))
+      ) : (
+        <div className="rom-grid">
+          {filtered.map((rom) => (
+            <RomCard key={rom.id} rom={rom} onStatusChange={onStatusChange} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
