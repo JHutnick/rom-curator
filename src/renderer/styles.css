@@ -65,6 +65,43 @@ h1, h2 { font-weight: 600; }
 .setup-screen .mono {
   font-family: monospace;
 }
+.setup-screen a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.setup-screen a:hover {
+  text-decoration: underline;
+}
+.dat-status {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.dat-status-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.dat-status-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dat-status-list li {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+.dat-found { color: var(--keep); }
+.dat-missing { color: var(--text-dim); }
 .setup-screen label {
   display: block;
   margin-top: 10px;

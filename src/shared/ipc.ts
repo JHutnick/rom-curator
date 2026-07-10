@@ -1,4 +1,4 @@
-import type { AppConfig, CuratedRom, CurationStatus, ScanProgress } from './types';
+import type { AppConfig, ConsoleId, CuratedRom, CurationStatus, ScanProgress } from './types';
 
 export const IPC = {
   configGet: 'config:get',
@@ -10,6 +10,7 @@ export const IPC = {
   romSetStatus: 'rom:setStatus',
   exportRun: 'export:run',
   openExportFolder: 'export:openFolder',
+  checkDatFiles: 'dat:check',
 } as const;
 
 export interface RomCuratorApi {
@@ -22,6 +23,7 @@ export interface RomCuratorApi {
   setRomStatus(romId: number, status: CurationStatus): Promise<void>;
   exportKept(): Promise<{ exportedCount: number; copiedCount: number }>;
   openExportFolder(): Promise<void>;
+  checkDatFiles(datFolder: string): Promise<Record<ConsoleId, boolean>>;
 }
 
 declare global {

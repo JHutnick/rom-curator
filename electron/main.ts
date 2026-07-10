@@ -6,6 +6,7 @@ import { loadConfig, saveConfig } from '../src/main/configStore';
 import { openDb, defaultDbPath, setCurationStatus } from '../src/main/db';
 import { runPipeline, buildCuratedList } from '../src/main/pipeline';
 import { exportRoms, type ExportableRom } from '../src/main/exporter';
+import { checkDatFiles } from '../src/main/datFileCheck';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -38,6 +39,20 @@ function createWindow(): void {
   });
   mainWindow.webContents.on('render-process-gone', (_event, details) => {
     console.error('[renderer] process gone:', details);
+  });
+
+  // External links (No-Intro, Redump, Twitch dev console) should open in the
+  // user's normal browser, not navigate this app window away from itself.
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: 'deny' };
+  });
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    const isOwnApp = url.startsWith('http://localhost:5173') || url.startsWith('file://');
+    if (!isOwnApp) {
+      event.preventDefault();
+      shell.openExternal(url);
+    }
   });
 
   const devUrl = process.env.ELECTRON_RENDERER_URL;
@@ -100,6 +115,8 @@ app.whenReady().then(() => {
     const config = await loadConfig(app.getPath('userData'));
     if (config.destFolder) await shell.openPath(config.destFolder);
   });
+
+  ipcMain.handle(IPC.checkDatFiles, async (_event, datFolder: string) => checkDatFiles(datFolder));
 
   createWindow();
 

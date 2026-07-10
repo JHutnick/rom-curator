@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { AppConfig, ConsoleId } from '../shared/types';
 import { CONSOLES, guessConsoleFromFolderName } from '../main/consoleConfig';
 
@@ -9,6 +9,28 @@ interface Props {
 
 export default function SetupScreen({ initial, onSave }: Props) {
   const [config, setConfig] = useState<AppConfig>(initial);
+  const [datStatus, setDatStatus] = useState<Record<ConsoleId, boolean> | null>(null);
+  const [checkingDats, setCheckingDats] = useState(false);
+
+  async function checkDats(datFolder: string) {
+    if (!datFolder) {
+      setDatStatus(null);
+      return;
+    }
+    setCheckingDats(true);
+    try {
+      setDatStatus(await window.romCurator.checkDatFiles(datFolder));
+    } finally {
+      setCheckingDats(false);
+    }
+  }
+
+  useEffect(() => {
+    checkDats(config.datFolder);
+    // Only re-check automatically when the folder path itself changes — files
+    // added to the same folder need the "Recheck" button since we don't watch it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.datFolder]);
 
   async function pickFolder(field: 'datFolder' | 'destFolder') {
     const folder = await window.romCurator.chooseFolder();
@@ -37,6 +59,7 @@ export default function SetupScreen({ initial, onSave }: Props) {
   }
 
   const canSave = config.romRoots.length > 0 && config.datFolder && config.destFolder;
+  const datFoundCount = datStatus ? Object.values(datStatus).filter(Boolean).length : 0;
 
   return (
     <div className="setup-screen">
@@ -74,14 +97,48 @@ export default function SetupScreen({ initial, onSave }: Props) {
       <section>
         <h2>DAT files folder</h2>
         <p className="hint">
-          A folder containing No-Intro / Redump DAT files you've downloaded yourself (from
-          Datomatic / redump.org — these sites don't allow automated downloads, so this is a
-          manual one-time step).
+          A folder containing No-Intro / Redump DAT files you've downloaded yourself —{' '}
+          <a href="https://datomatic.no-intro.org/" target="_blank" rel="noreferrer">
+            datomatic.no-intro.org
+          </a>{' '}
+          for cartridge consoles,{' '}
+          <a href="http://redump.org/downloads/" target="_blank" rel="noreferrer">
+            redump.org/downloads
+          </a>{' '}
+          for disc-based ones. Neither site allows automated downloads, so this is a manual step —
+          rename files to match if a site names them differently (exact names below).
         </p>
         <div className="folder-picker">
           <span>{config.datFolder || '(not set)'}</span>
           <button onClick={() => pickFolder('datFolder')}>Choose…</button>
         </div>
+
+        {config.datFolder && (
+          <div className="dat-status">
+            <div className="dat-status-header">
+              <span>
+                {checkingDats
+                  ? 'Checking…'
+                  : datStatus
+                    ? `${datFoundCount} of ${CONSOLES.length} DAT files found`
+                    : ''}
+              </span>
+              <button onClick={() => checkDats(config.datFolder)} disabled={checkingDats}>
+                Recheck
+              </button>
+            </div>
+            <ul className="dat-status-list">
+              {CONSOLES.map((c) => {
+                const found = datStatus?.[c.id] ?? false;
+                return (
+                  <li key={c.id} className={found ? 'dat-found' : 'dat-missing'} title={c.datFile}>
+                    {found ? '✓' : '✗'} {c.label}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
       </section>
 
       <section>
@@ -97,7 +154,10 @@ export default function SetupScreen({ initial, onSave }: Props) {
         <h2>IGDB / Twitch credentials (optional)</h2>
         <p className="hint">
           Used to fetch ratings/cover art for identified games. Create a free app at{' '}
-          <span className="mono">dev.twitch.tv/console/apps</span>. Leave blank to skip ratings.
+          <a href="https://dev.twitch.tv/console/apps" target="_blank" rel="noreferrer">
+            dev.twitch.tv/console/apps
+          </a>
+          . Leave blank to skip ratings.
         </p>
         <label>
           Client ID
