@@ -1,5 +1,5 @@
 import type { CuratedRom, CurationStatus } from '../shared/types';
-import { formatBytes } from '../shared/curationHelpers';
+import { formatBytes, formatCount } from '../shared/curationHelpers';
 
 interface Props {
   rom: CuratedRom;
@@ -30,7 +30,14 @@ export default function RomCard({ rom, onStatusChange }: Props) {
           {rom.region ? ` · ${rom.region}` : ''}
         </div>
         <div className="rom-meta-row">
-          {rating != null && <span className="rating">★ {rating.toFixed(0)}</span>}
+          {rating != null && (
+            <span className="rating">
+              ★ {rating.toFixed(0)}
+              {rom.igdb?.ratingCount ? (
+                <span className="rating-count"> ({formatCount(rom.igdb.ratingCount)})</span>
+              ) : null}
+            </span>
+          )}
           <span className="filesize">{formatBytes(rom.sizeBytes)}</span>
         </div>
         {rom.igdb?.genres?.length ? (

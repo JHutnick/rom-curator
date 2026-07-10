@@ -352,6 +352,7 @@ button.active { background: var(--accent); color: white; }
   font-size: 12px;
 }
 .rating { color: var(--maybe); }
+.rating-count { color: var(--text-dim); }
 .filesize { color: var(--text-dim); }
 .genres { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
 

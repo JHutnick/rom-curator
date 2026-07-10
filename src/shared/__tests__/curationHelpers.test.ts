@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeDuplicateSkipIds, formatBytes, regionRank } from '../curationHelpers';
+import { computeDuplicateSkipIds, formatBytes, formatCount, regionRank } from '../curationHelpers';
 import type { CuratedRom } from '../types';
 
 describe('formatBytes', () => {
@@ -12,6 +12,22 @@ describe('formatBytes', () => {
     expect(formatBytes(1536 * 1024)).toBe('1.5MB');
     expect(formatBytes(200 * 1024 * 1024)).toBe('200MB');
     expect(formatBytes(1.5 * 1024 * 1024 * 1024)).toBe('1.5GB');
+  });
+});
+
+describe('formatCount', () => {
+  it('shows raw numbers under 1000', () => {
+    expect(formatCount(0)).toBe('0');
+    expect(formatCount(842)).toBe('842');
+  });
+
+  it('abbreviates thousands with one decimal below 10k, whole above', () => {
+    expect(formatCount(1400)).toBe('1.4k');
+    expect(formatCount(25000)).toBe('25k');
+  });
+
+  it('abbreviates millions', () => {
+    expect(formatCount(2_300_000)).toBe('2.3M');
   });
 });
 

@@ -14,6 +14,14 @@ export function formatBytes(bytes: number): string {
   return `${value < 10 ? value.toFixed(1) : Math.round(value)}${units[unitIndex]}`;
 }
 
+/** Compact count, e.g. 1400 -> "1.4k", 2_300_000 -> "2.3M". Used for IGDB rating_count
+ *  as a community-popularity signal, distinct from the average rating score. */
+export function formatCount(n: number): string {
+  if (n < 1000) return String(n);
+  if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0)}k`;
+  return `${(n / 1_000_000).toFixed(1)}M`;
+}
+
 /** Lower = more preferred region, used to pick the "keeper" among duplicate/variant copies of a game. */
 export function regionRank(region: string | null): number {
   if (!region) return 5;

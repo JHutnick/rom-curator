@@ -4,6 +4,10 @@ import { CONSOLES } from '../main/consoleConfig';
 import { computeDuplicateSkipIds, formatBytes } from '../shared/curationHelpers';
 import RomCard from './RomCard';
 
+type SortMode = 'rating' | 'popularity' | 'name' | 'size';
+
+const MIN_RATING_COUNT_OPTIONS = [0, 10, 50, 100, 500, 1000];
+
 interface Props {
   roms: CuratedRom[];
   onStatusChange: (romId: number, status: CurationStatus) => void;
@@ -27,6 +31,8 @@ export default function ReviewScreen({
   const [regionFilter, setRegionFilter] = useState<string>('all');
   const [confidenceFilter, setConfidenceFilter] = useState<MatchConfidence | 'all'>('all');
   const [minRating, setMinRating] = useState(0);
+  const [minRatingCount, setMinRatingCount] = useState(0);
+  const [sortMode, setSortMode] = useState<SortMode>('rating');
   const [search, setSearch] = useState('');
 
   const regions = useMemo(() => {
@@ -44,17 +50,25 @@ export default function ReviewScreen({
         const rating = r.igdb?.aggregatedRating ?? r.igdb?.rating ?? 0;
         return rating >= minRating;
       })
+      .filter((r) => (r.igdb?.ratingCount ?? 0) >= minRatingCount)
       .filter((r) => {
         if (!search.trim()) return true;
         const name = (r.matchedName ?? r.filename).toLowerCase();
         return name.includes(search.toLowerCase());
       })
       .sort((a, b) => {
+        if (sortMode === 'name') {
+          return (a.matchedName ?? a.filename).localeCompare(b.matchedName ?? b.filename);
+        }
+        if (sortMode === 'size') return b.sizeBytes - a.sizeBytes;
+        if (sortMode === 'popularity') {
+          return (b.igdb?.ratingCount ?? -1) - (a.igdb?.ratingCount ?? -1);
+        }
         const ra = a.igdb?.aggregatedRating ?? a.igdb?.rating ?? -1;
         const rb = b.igdb?.aggregatedRating ?? b.igdb?.rating ?? -1;
         return rb - ra;
       });
-  }, [roms, consoleFilter, regionFilter, confidenceFilter, minRating, search]);
+  }, [roms, consoleFilter, regionFilter, confidenceFilter, minRating, minRatingCount, sortMode, search]);
 
   // Grouped by console when there's more than one system in view — a flat grid
   // of thousands of cards across 17 consoles stops being scannable otherwise.
@@ -140,6 +154,21 @@ export default function ReviewScreen({
             />
             {minRating}
           </label>
+
+          <select value={minRatingCount} onChange={(e) => setMinRatingCount(Number(e.target.value))}>
+            {MIN_RATING_COUNT_OPTIONS.map((n) => (
+              <option key={n} value={n}>
+                {n === 0 ? 'Any # of ratings' : `≥${n} ratings`}
+              </option>
+            ))}
+          </select>
+
+          <select value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)}>
+            <option value="rating">Sort: Rating</option>
+            <option value="popularity">Sort: Popularity (# ratings)</option>
+            <option value="name">Sort: Name</option>
+            <option value="size">Sort: File size</option>
+          </select>
         </div>
 
         <div className="toolbar-row toolbar-actions">
