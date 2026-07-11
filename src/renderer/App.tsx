@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { AppConfig, CuratedRom, CurationStatus, ScanProgress } from '../shared/types';
+import type { AppConfig, CuratedRom, CurationStatus, ExportProgress, ScanProgress } from '../shared/types';
 import { formatDuration } from '../shared/curationHelpers';
 import SetupScreen from './SetupScreen';
 import ReviewScreen from './ReviewScreen';
@@ -32,10 +32,16 @@ export default function App() {
   const [roms, setRoms] = useState<CuratedRom[]>([]);
   const [progress, setProgress] = useState<ScanProgress | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
   const [exportResult, setExportResult] = useState<
     { count: number; copiedCount: number; destFolder: string } | null
   >(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [appVersion, setAppVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    window.romCurator.getAppVersion().then(setAppVersion).catch(() => {});
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -63,6 +69,10 @@ export default function App() {
 
   useEffect(() => {
     return window.romCurator.onPipelineProgress(setProgress);
+  }, []);
+
+  useEffect(() => {
+    return window.romCurator.onExportProgress(setExportProgress);
   }, []);
 
   async function handleSaveConfig(newConfig: AppConfig) {
@@ -108,6 +118,7 @@ export default function App() {
 
   async function handleExport() {
     setExporting(true);
+    setExportProgress(null);
     setExportResult(null);
     setErrorMessage(null);
     try {
@@ -121,8 +132,11 @@ export default function App() {
       setErrorMessage(`Export failed: ${readableError(err)}`);
     } finally {
       setExporting(false);
+      setExportProgress(null);
     }
   }
+
+  const versionBadge = <div className="app-version">v{appVersion ?? '…'}</div>;
 
   if (view === 'loading') return <div className="center-message">Loading…</div>;
 
@@ -137,6 +151,7 @@ export default function App() {
           </div>
         )}
         <SetupScreen initial={config} onSave={handleSaveConfig} />
+        {versionBadge}
       </>
     );
   }
@@ -157,6 +172,11 @@ export default function App() {
               : ''}
           </p>
         )}
+        {progress?.phase === 'enriching' && (progress.enrichFailed ?? 0) > 0 && (
+          <p className="scan-fail-count">
+            {progress.enrichSucceeded} succeeded, {progress.enrichFailed} failed so far
+          </p>
+        )}
         <p>{progress?.message ?? 'Starting…'}</p>
         {progress?.phase === 'enriching' && (
           <p className="scan-note">
@@ -164,17 +184,40 @@ export default function App() {
             can take a while — this is expected, not stuck.
           </p>
         )}
+        {versionBadge}
       </div>
     );
   }
 
   return (
     <>
+      {versionBadge}
       {errorMessage && (
         <div className="error-banner">
           <span>{errorMessage}</span>
           <span className="spacer" />
           <button onClick={() => setErrorMessage(null)}>Dismiss</button>
+        </div>
+      )}
+      {exporting && (
+        <div className="export-banner export-progress-banner">
+          <div className="export-progress-text">
+            <span>
+              {exportProgress
+                ? `Copying ${exportProgress.current} of ${exportProgress.total} — ${exportProgress.filename}`
+                : 'Preparing export…'}
+            </span>
+          </div>
+          <div className="progress-bar export-progress-bar">
+            <div
+              className="progress-fill"
+              style={{
+                width: exportProgress
+                  ? `${Math.round((exportProgress.current / exportProgress.total) * 100)}%`
+                  : '0%',
+              }}
+            />
+          </div>
         </div>
       )}
       {exportResult && (

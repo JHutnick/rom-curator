@@ -67,6 +67,8 @@ function createWindow(): void {
 app.whenReady().then(() => {
   const db = openDb(defaultDbPath(app.getPath('userData')));
 
+  ipcMain.handle(IPC.getAppVersion, async () => app.getVersion());
+
   ipcMain.handle(IPC.configGet, async () => loadConfig(app.getPath('userData')));
 
   ipcMain.handle(IPC.configSet, async (_event, config: AppConfig) => {
@@ -94,7 +96,7 @@ app.whenReady().then(() => {
     },
   );
 
-  ipcMain.handle(IPC.exportRun, async () => {
+  ipcMain.handle(IPC.exportRun, async (event) => {
     const config = await loadConfig(app.getPath('userData'));
     const curated = buildCuratedList(db);
     const kept: ExportableRom[] = curated
@@ -107,7 +109,9 @@ app.whenReady().then(() => {
         filename: r.filename,
         region: r.region,
       }));
-    const { manifest, copiedCount } = await exportRoms(config.destFolder, kept);
+    const { manifest, copiedCount } = await exportRoms(config.destFolder, kept, (progress) => {
+      event.sender.send(IPC.exportProgress, progress);
+    });
     return { exportedCount: manifest.length, copiedCount };
   });
 

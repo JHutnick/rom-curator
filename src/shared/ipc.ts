@@ -1,4 +1,4 @@
-import type { AppConfig, ConsoleId, CuratedRom, CurationStatus, ScanProgress } from './types';
+import type { AppConfig, ConsoleId, CuratedRom, CurationStatus, ExportProgress, ScanProgress } from './types';
 
 export const IPC = {
   configGet: 'config:get',
@@ -9,12 +9,15 @@ export const IPC = {
   romList: 'rom:list',
   romSetStatus: 'rom:setStatus',
   exportRun: 'export:run',
+  exportProgress: 'export:progress',
   openExportFolder: 'export:openFolder',
   checkDatFiles: 'dat:check',
   resetData: 'data:reset',
+  getAppVersion: 'app:version',
 } as const;
 
 export interface RomCuratorApi {
+  getAppVersion(): Promise<string>;
   getConfig(): Promise<AppConfig>;
   setConfig(config: AppConfig): Promise<void>;
   chooseFolder(): Promise<string | null>;
@@ -23,6 +26,7 @@ export interface RomCuratorApi {
   listRoms(): Promise<CuratedRom[]>;
   setRomStatus(romId: number, status: CurationStatus): Promise<void>;
   exportKept(): Promise<{ exportedCount: number; copiedCount: number }>;
+  onExportProgress(cb: (progress: ExportProgress) => void): () => void;
   openExportFolder(): Promise<void>;
   checkDatFiles(datFolder: string): Promise<Record<ConsoleId, boolean>>;
   /** Shows a native confirmation dialog; returns whether the user actually

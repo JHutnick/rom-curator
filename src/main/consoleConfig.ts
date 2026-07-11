@@ -176,10 +176,11 @@ export const CONSOLES: ConsoleDef[] = [
   {
     id: 'psp',
     label: 'PSP',
-    // .cso is a compressed UMD ISO (maxcso) — Redump's DAT only lists the raw
-    // .iso, but filename-match doesn't care about container format, only the
-    // extension-stripped name, so .cso dumps still resolve correctly.
-    extensions: ['.iso', '.cso'],
+    // .cso is a compressed UMD ISO (maxcso), .chd is CHD (MAME/RetroArch's
+    // compressed disc format) — Redump's DAT only lists the raw .iso, but
+    // filename-match doesn't care about container format, only the
+    // extension-stripped name, so these still resolve correctly.
+    extensions: ['.iso', '.cso', '.chd'],
     hashOnScan: false,
     igdbPlatformId: 38,
     datFile: 'Sony - PlayStation Portable.dat',

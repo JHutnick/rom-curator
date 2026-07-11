@@ -4,6 +4,7 @@ import type { RomCuratorApi } from '../src/shared/ipc';
 import type { AppConfig, CurationStatus } from '../src/shared/types';
 
 const api: RomCuratorApi = {
+  getAppVersion: () => ipcRenderer.invoke(IPC.getAppVersion),
   getConfig: () => ipcRenderer.invoke(IPC.configGet),
   setConfig: (config: AppConfig) => ipcRenderer.invoke(IPC.configSet, config),
   chooseFolder: () => ipcRenderer.invoke(IPC.chooseFolder),
@@ -17,6 +18,11 @@ const api: RomCuratorApi = {
   setRomStatus: (romId: number, status: CurationStatus) =>
     ipcRenderer.invoke(IPC.romSetStatus, romId, status),
   exportKept: () => ipcRenderer.invoke(IPC.exportRun),
+  onExportProgress: (cb) => {
+    const listener = (_event: unknown, progress: Parameters<typeof cb>[0]) => cb(progress);
+    ipcRenderer.on(IPC.exportProgress, listener);
+    return () => ipcRenderer.removeListener(IPC.exportProgress, listener);
+  },
   openExportFolder: () => ipcRenderer.invoke(IPC.openExportFolder),
   checkDatFiles: (datFolder: string) => ipcRenderer.invoke(IPC.checkDatFiles, datFolder),
   resetData: () => ipcRenderer.invoke(IPC.resetData),

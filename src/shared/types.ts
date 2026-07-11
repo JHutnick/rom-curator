@@ -85,6 +85,17 @@ export interface ScanProgress {
    *  large first scan across several consoles doesn't look stuck partway
    *  through a long, deliberately-throttled queue of lookups. */
   etaSeconds?: number;
+  /** Running tally of IGDB lookups this scan, present from 'enriching' onward.
+   *  Failed lookups aren't cached as a permanent non-match, so they're retried
+   *  automatically on the next scan rather than lost. */
+  enrichSucceeded?: number;
+  enrichFailed?: number;
+}
+
+export interface ExportProgress {
+  current: number;
+  total: number;
+  filename: string;
 }
 
 export interface ExportManifestEntry {

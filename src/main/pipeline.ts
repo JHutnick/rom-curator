@@ -17,9 +17,10 @@ import type { AppConfig, ConsoleId, CuratedRom, RomRoot, ScanProgress } from '..
 
 export type ProgressCb = (p: ScanProgress) => void;
 
-// IGDB's Twitch-auth'd API allows ~4 requests/second; pacing every call at
-// 300ms keeps a full library scan comfortably under that regardless of how
-// fast the network responds.
+// IGDB's Twitch-auth'd API allows ~4 requests/second; 300ms pacing (~3.3 req/s)
+// keeps a full library scan comfortably under that. A near-total failure rate
+// seen during testing traced back to a stale Twitch client secret, not rate
+// limiting, so there's no need to pace more conservatively than this.
 const IGDB_REQUEST_SPACING_MS = 300;
 
 function sleep(ms: number): Promise<void> {
@@ -135,6 +136,8 @@ export async function runPipeline(
   // riding along on the file-scan progress bar, which finishes almost
   // instantly and gives no sense of how long the IGDB-rate-limited part
   // (the genuinely slow part on a big first scan) will actually take.
+  let enrichSucceeded = 0;
+  let enrichFailed = 0;
   if (creds) {
     const targets = computeEnrichTargets(db, identified);
     for (let i = 0; i < targets.length; i++) {
@@ -146,21 +149,28 @@ export async function runPipeline(
         total: targets.length,
         message: `Looking up "${target.matchedName}" on IGDB…`,
         etaSeconds: Math.round((remaining * IGDB_REQUEST_SPACING_MS) / 1000),
+        enrichSucceeded,
+        enrichFailed,
       });
       const consoleDef = consoleById(target.consoleId);
       try {
         const resolution = await resolveTitle(creds, target.matchedName, consoleDef.igdbPlatformId);
         setCachedIgdb(db, target.cacheKey, resolution.info, resolution.quality);
-      } catch {
+        enrichSucceeded++;
+      } catch (err) {
         // Request itself failed (network blip, IGDB rate-limit, etc.) — do NOT
         // cache this as "no match", so a later rescan retries it instead of
         // permanently treating a transient failure as a confirmed non-match.
+        enrichFailed++;
+        const reason = err instanceof Error ? err.message : String(err);
         onProgress({
           phase: 'enriching',
           current: i + 1,
           total: targets.length,
-          message: `IGDB lookup failed for "${target.matchedName}", will retry on next scan`,
+          message: `IGDB lookup failed for "${target.matchedName}" (${reason}), will retry on next scan`,
           etaSeconds: Math.round((remaining * IGDB_REQUEST_SPACING_MS) / 1000),
+          enrichSucceeded,
+          enrichFailed,
         });
       }
       await sleep(IGDB_REQUEST_SPACING_MS);
@@ -173,11 +183,16 @@ export async function runPipeline(
   const currentKeys = new Set(files.map((f) => `${f.path}::${f.filename}`));
   const prunedCount = pruneRomsNotIn(db, currentKeys, eligibleConsoles);
 
+  const doneParts = [`Done — ${enrichSucceeded} enriched`];
+  if (enrichFailed > 0) doneParts.push(`${enrichFailed} lookups failed (will retry next scan)`);
+  if (prunedCount > 0) doneParts.push(`removed ${prunedCount} stale entries`);
   onProgress({
     phase: 'done',
     current: files.length,
     total: files.length,
-    message: prunedCount > 0 ? `Done — removed ${prunedCount} stale entries from previous scans` : 'Done',
+    message: enrichSucceeded + enrichFailed > 0 ? doneParts.join(', ') : 'Done',
+    enrichSucceeded,
+    enrichFailed,
   });
   return buildCuratedList(db);
 }

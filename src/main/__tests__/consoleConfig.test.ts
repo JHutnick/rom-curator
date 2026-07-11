@@ -39,6 +39,12 @@ describe('extensionBelongsToConsole', () => {
     expect(extensionBelongsToConsole('.nes', 'snes')).toBe(false);
     expect(extensionBelongsToConsole('.cdi', 'ps2')).toBe(false); // Dreamcast-only format
   });
+
+  it('PSP recognizes .chd alongside .iso/.cso (regression: .chd dumps went unscanned)', () => {
+    expect(extensionBelongsToConsole('.chd', 'psp')).toBe(true);
+    expect(extensionBelongsToConsole('.iso', 'psp')).toBe(true);
+    expect(extensionBelongsToConsole('.cso', 'psp')).toBe(true);
+  });
 });
 
 describe('matchesDatFilename', () => {

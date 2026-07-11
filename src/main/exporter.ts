@@ -1,7 +1,7 @@
 import { access, copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { consoleById } from './consoleConfig';
-import type { ConsoleId, ExportManifestEntry } from '../shared/types';
+import type { ConsoleId, ExportManifestEntry, ExportProgress } from '../shared/types';
 
 export interface ExportableRom {
   id: number;
@@ -52,13 +52,19 @@ async function fileExists(p: string): Promise<boolean> {
  * a manifest.json in destRoot so a future run can tell what's already been exported,
  * and skips re-copying a rom whose destination file is already there from a prior run.
  */
-export async function exportRoms(destRoot: string, roms: ExportableRom[]): Promise<ExportOutcome> {
+export async function exportRoms(
+  destRoot: string,
+  roms: ExportableRom[],
+  onProgress?: (progress: ExportProgress) => void,
+): Promise<ExportOutcome> {
   const manifestPath = path.join(destRoot, 'manifest.json');
   const existing = await loadManifest(manifestPath);
   const byRomId = new Map(existing.map((e) => [e.romId, e]));
 
   let copiedCount = 0;
-  for (const rom of roms) {
+  for (let i = 0; i < roms.length; i++) {
+    const rom = roms[i];
+    onProgress?.({ current: i + 1, total: roms.length, filename: rom.filename });
     const consoleDef = consoleById(rom.consoleId);
     const consoleDir = path.join(destRoot, consoleDef.label);
     const destPath = path.join(consoleDir, destFilenameFor(rom));
