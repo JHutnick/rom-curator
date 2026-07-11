@@ -1,6 +1,6 @@
 {
   "name": "rom-curator",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Identify, rate, and curate a retro ROM collection down to what's worth keeping.",
   "private": true,
   "license": "MIT",

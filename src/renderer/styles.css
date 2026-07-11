@@ -259,14 +259,29 @@ button.danger { background: var(--skip); color: #2a0a0a; font-weight: 600; }
 .stat-skip { color: var(--skip); }
 .stat-undecided { color: var(--text-dim); }
 
+.console-summary-section {
+  border-bottom: 1px solid var(--border);
+}
+.console-summary-toggle {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 8px 24px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.console-summary-toggle:hover { background: var(--panel); filter: none; }
 .console-summary {
   display: grid;
   grid-template-columns: minmax(140px, 1fr) 56px 56px 56px 56px 72px;
   align-items: center;
   gap: 4px 8px;
-  padding: 10px 24px;
+  padding: 0 24px 10px;
   font-size: 12px;
-  border-bottom: 1px solid var(--border);
 }
 .console-summary-row { display: contents; }
 .console-summary-header-row span {

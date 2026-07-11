@@ -7,6 +7,7 @@ import RomCard from './RomCard';
 type SortMode = 'rating' | 'popularity' | 'name' | 'size';
 
 const MIN_RATING_COUNT_OPTIONS = [0, 10, 50, 100, 500, 1000];
+const SHOW_CONSOLE_SUMMARY_KEY = 'romCurator:showConsoleSummary';
 
 interface Props {
   roms: CuratedRom[];
@@ -35,6 +36,17 @@ export default function ReviewScreen({
   const [minRatingCount, setMinRatingCount] = useState(0);
   const [sortMode, setSortMode] = useState<SortMode>('rating');
   const [search, setSearch] = useState('');
+  const [showConsoleSummary, setShowConsoleSummary] = useState(
+    () => localStorage.getItem(SHOW_CONSOLE_SUMMARY_KEY) !== 'false',
+  );
+
+  function toggleConsoleSummary() {
+    setShowConsoleSummary((prev) => {
+      const next = !prev;
+      localStorage.setItem(SHOW_CONSOLE_SUMMARY_KEY, String(next));
+      return next;
+    });
+  }
 
   const regions = useMemo(() => {
     const set = new Set<string>();
@@ -260,38 +272,45 @@ export default function ReviewScreen({
       </div>
 
       {perConsoleStats.length > 1 && (
-        <div className="console-summary">
-          <div className="console-summary-row console-summary-header-row">
-            <span>Console</span>
-            <span>Total</span>
-            <span>Keep</span>
-            <span>Maybe</span>
-            <span>Skip</span>
-            <span>Undecided</span>
-          </div>
-          {perConsoleStats.map(({ console: c, stats: cs }) => (
-            <div className="console-summary-row" key={c.id}>
-              <button
-                className={`console-summary-name${consoleFilter === c.id ? ' active' : ''}`}
-                onClick={() => setConsoleFilter(consoleFilter === c.id ? 'all' : c.id)}
-              >
-                {c.label}
-              </button>
-              <span className="console-summary-total">{cs.total}</span>
-              <button className="stat stat-keep" onClick={() => jumpTo(c.id, 'keep')}>
-                {cs.keep}
-              </button>
-              <button className="stat stat-maybe" onClick={() => jumpTo(c.id, 'maybe')}>
-                {cs.maybe}
-              </button>
-              <button className="stat stat-skip" onClick={() => jumpTo(c.id, 'skip')}>
-                {cs.skip}
-              </button>
-              <button className="stat stat-undecided" onClick={() => jumpTo(c.id, 'undecided')}>
-                {cs.undecided}
-              </button>
+        <div className="console-summary-section">
+          <button className="console-summary-toggle" onClick={toggleConsoleSummary}>
+            {showConsoleSummary ? '▾' : '▸'} Console breakdown
+          </button>
+          {showConsoleSummary && (
+            <div className="console-summary">
+              <div className="console-summary-row console-summary-header-row">
+                <span>Console</span>
+                <span>Total</span>
+                <span>Keep</span>
+                <span>Maybe</span>
+                <span>Skip</span>
+                <span>Undecided</span>
+              </div>
+              {perConsoleStats.map(({ console: c, stats: cs }) => (
+                <div className="console-summary-row" key={c.id}>
+                  <button
+                    className={`console-summary-name${consoleFilter === c.id ? ' active' : ''}`}
+                    onClick={() => setConsoleFilter(consoleFilter === c.id ? 'all' : c.id)}
+                  >
+                    {c.label}
+                  </button>
+                  <span className="console-summary-total">{cs.total}</span>
+                  <button className="stat stat-keep" onClick={() => jumpTo(c.id, 'keep')}>
+                    {cs.keep}
+                  </button>
+                  <button className="stat stat-maybe" onClick={() => jumpTo(c.id, 'maybe')}>
+                    {cs.maybe}
+                  </button>
+                  <button className="stat stat-skip" onClick={() => jumpTo(c.id, 'skip')}>
+                    {cs.skip}
+                  </button>
+                  <button className="stat stat-undecided" onClick={() => jumpTo(c.id, 'undecided')}>
+                    {cs.undecided}
+                  </button>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
 
