@@ -115,7 +115,9 @@ export const CONSOLES: ConsoleDef[] = [
     extensions: ['.a26'],
     hashOnScan: true,
     igdbPlatformId: 59,
-    datFile: 'Atari - 2600.dat',
+    // Repeats "Atari" because that's the console's actual name, same as
+    // "Nintendo - Nintendo 64" — confirmed against a real downloaded DAT.
+    datFile: 'Atari - Atari 2600.dat',
   },
   {
     id: 'ps1',
@@ -196,7 +198,10 @@ export const CONSOLES: ConsoleDef[] = [
     extensions: ['.a52'],
     hashOnScan: true,
     igdbPlatformId: 66,
-    datFile: 'Atari - 5200.dat',
+    // No-Intro's set name repeats "Atari" because that's the console's actual
+    // name ("Atari 5200"), same pattern as "Nintendo - Nintendo 64" — not a
+    // typo. Confirmed against a real downloaded DAT filename.
+    datFile: 'Atari - Atari 5200.dat',
   },
   {
     id: 'atari7800',
@@ -204,7 +209,7 @@ export const CONSOLES: ConsoleDef[] = [
     extensions: ['.a78'],
     hashOnScan: true,
     igdbPlatformId: 60,
-    datFile: 'Atari - 7800.dat',
+    datFile: 'Atari - Atari 7800.dat',
   },
   {
     id: 'lynx',
@@ -212,7 +217,7 @@ export const CONSOLES: ConsoleDef[] = [
     extensions: ['.lnx'],
     hashOnScan: true,
     igdbPlatformId: 61,
-    datFile: 'Atari - Lynx.dat',
+    datFile: 'Atari - Atari Lynx.dat',
   },
   {
     id: 'jaguar',
@@ -220,7 +225,7 @@ export const CONSOLES: ConsoleDef[] = [
     extensions: ['.j64'],
     hashOnScan: true,
     igdbPlatformId: 62,
-    datFile: 'Atari - Jaguar.dat',
+    datFile: 'Atari - Atari Jaguar.dat',
   },
 ];
 

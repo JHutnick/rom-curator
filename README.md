@@ -53,11 +53,11 @@ where your ROMs come from.
 | Master System | hash-verified | `Sega - Master System - Mark III.dat` |
 | Game Gear | hash-verified | `Sega - Game Gear.dat` |
 | PC Engine / TurboGrafx-16 | hash-verified | `NEC - PC Engine - TurboGrafx-16.dat` |
-| Atari 2600 | hash-verified | `Atari - 2600.dat` |
-| Atari 5200 | hash-verified | `Atari - 5200.dat` |
-| Atari 7800 | hash-verified | `Atari - 7800.dat` |
-| Atari Lynx | hash-verified | `Atari - Lynx.dat` |
-| Atari Jaguar | hash-verified | `Atari - Jaguar.dat` |
+| Atari 2600 | hash-verified | `Atari - Atari 2600.dat` |
+| Atari 5200 | hash-verified | `Atari - Atari 5200.dat` |
+| Atari 7800 | hash-verified | `Atari - Atari 7800.dat` |
+| Atari Lynx | hash-verified | `Atari - Atari Lynx.dat` |
+| Atari Jaguar | hash-verified | `Atari - Atari Jaguar.dat` |
 | PlayStation | filename-match | `Sony - PlayStation.dat` |
 | PlayStation 2 | filename-match | `Sony - PlayStation 2.dat` |
 | PSP | filename-match | `Sony - PlayStation Portable.dat` |

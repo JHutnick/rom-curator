@@ -42,6 +42,14 @@ export default function ReviewScreen({
     return Array.from(set).sort();
   }, [roms]);
 
+  // Only offer consoles that actually have scanned games, not all 24 supported
+  // ones — with just SNES configured, seeing 23 empty options is just clutter.
+  // Order follows CONSOLES (a stable, meaningful order) rather than scan order.
+  const presentConsoles = useMemo(() => {
+    const ids = new Set(roms.map((r) => r.consoleId));
+    return CONSOLES.filter((c) => ids.has(c.id));
+  }, [roms]);
+
   const filtered = useMemo(() => {
     return roms
       .filter((r) => consoleFilter === 'all' || r.consoleId === consoleFilter)
@@ -115,7 +123,7 @@ export default function ReviewScreen({
         <div className="toolbar-row toolbar-filters">
           <select value={consoleFilter} onChange={(e) => setConsoleFilter(e.target.value as ConsoleId | 'all')}>
             <option value="all">All consoles</option>
-            {CONSOLES.map((c) => (
+            {presentConsoles.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.label}
               </option>

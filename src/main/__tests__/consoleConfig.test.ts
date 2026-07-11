@@ -87,6 +87,22 @@ describe('matchesDatFilename', () => {
     expect(matchesDatFilename('Nintendo - Nintendo 3DS.dat', consoleById('3ds'))).toBe(true);
   });
 
+  it('matches real downloaded Atari DAT filenames ("Atari - Atari 2600...", not "Atari - 2600...")', () => {
+    // Regression test: the console's actual name repeats "Atari" (it's
+    // literally called "Atari 2600"), same as "Nintendo - Nintendo 64" — a
+    // real bug shipped with the wrong expected base name ("Atari - 2600.dat"),
+    // which isn't even a prefix of the real file, so no rescan ever found it.
+    expect(
+      matchesDatFilename('Atari - Atari 2600 (20260710-075425).dat', consoleById('atari2600')),
+    ).toBe(true);
+    expect(
+      matchesDatFilename('Atari - Atari 5200 (20260412-121350).dat', consoleById('atari5200')),
+    ).toBe(true);
+    expect(
+      matchesDatFilename('Atari - Atari 7800 (BIN) (20260601-051249).dat', consoleById('atari7800')),
+    ).toBe(true);
+  });
+
   it('rejects a completely unrelated filename', () => {
     expect(matchesDatFilename('Nintendo - Nintendo 64.dat', consoleById('ps2'))).toBe(false);
   });
