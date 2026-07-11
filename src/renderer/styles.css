@@ -39,6 +39,18 @@ h1, h2 { font-weight: 600; }
   border-radius: 4px;
   overflow: hidden;
 }
+.scan-count {
+  font-size: 13px;
+  color: var(--maybe);
+  font-weight: 600;
+  margin: 0;
+}
+.scan-note {
+  font-size: 12px;
+  color: var(--text-dim);
+  max-width: 380px;
+  margin: 4px 0 0;
+}
 .progress-fill {
   height: 100%;
   background: var(--accent);
@@ -246,6 +258,38 @@ button.danger { background: var(--skip); color: #2a0a0a; font-weight: 600; }
 .stat-maybe { color: var(--maybe); }
 .stat-skip { color: var(--skip); }
 .stat-undecided { color: var(--text-dim); }
+
+.console-summary {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) 56px 56px 56px 56px 72px;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 10px 24px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.console-summary-row { display: contents; }
+.console-summary-header-row span {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.console-summary-name {
+  justify-self: start;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 3px 8px;
+  color: var(--text);
+  font-weight: 600;
+  border-radius: 12px;
+  font-size: 12px;
+}
+.console-summary-name:hover { background: var(--panel); filter: none; }
+.console-summary-name.active { border-color: var(--accent); background: var(--panel); color: var(--accent); }
+.console-summary-total { color: var(--text-dim); justify-self: center; }
+.console-summary .stat { justify-self: center; }
 
 .console-section-header {
   padding: 18px 24px 4px;

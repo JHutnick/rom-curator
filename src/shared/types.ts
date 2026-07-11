@@ -80,6 +80,11 @@ export interface ScanProgress {
   current: number;
   total: number;
   message: string;
+  /** Only meaningful during 'enriching' — computed from the exact count of
+   *  remaining new IGDB lookups × the fixed request-pacing interval, so a
+   *  large first scan across several consoles doesn't look stuck partway
+   *  through a long, deliberately-throttled queue of lookups. */
+  etaSeconds?: number;
 }
 
 export interface ExportManifestEntry {

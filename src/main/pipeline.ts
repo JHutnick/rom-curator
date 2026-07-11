@@ -1,5 +1,5 @@
 import { CONSOLES, consoleById } from './consoleConfig';
-import { scanRoots, identifyFile, isRootAccessible } from './scanner';
+import { scanRoots, identifyFile, isRootAccessible, type ScannedFile } from './scanner';
 import { parseDatFile, type DatLookup } from './datParser';
 import { findDatFilePath } from './datFileCheck';
 import { resolveTitle, type IgdbCredentials } from './igdbClient';
@@ -60,6 +60,37 @@ export async function computeEligibleConsolesForPruning(romRoots: RomRoot[]): Pr
   return new Set(CONSOLES.map((c) => c.id).filter((id) => !protectedConsoles.has(id)));
 }
 
+interface EnrichTarget {
+  consoleId: ConsoleId;
+  matchedName: string;
+  cacheKey: string;
+}
+
+/**
+ * Distinct (console, matched name) pairs across the identified files that
+ * still need a fresh IGDB lookup — computed up front, after identification is
+ * done, so the enrichment phase can report an exact "N of M" count and a real
+ * ETA instead of a vague spinner. Two files matching the same game (region
+ * variants, duplicates) collapse to a single lookup, same as before.
+ */
+export function computeEnrichTargets(
+  db: JsonDb,
+  identified: { file: ScannedFile; matchedName: string | null }[],
+): EnrichTarget[] {
+  const seen = new Set<string>();
+  const targets: EnrichTarget[] = [];
+  for (const { file, matchedName } of identified) {
+    if (!matchedName) continue;
+    const cacheKey = `${file.consoleId}:${matchedName.toLowerCase()}`;
+    if (seen.has(cacheKey)) continue;
+    seen.add(cacheKey);
+    if (!hasCachedIgdb(db, cacheKey)) {
+      targets.push({ consoleId: file.consoleId, matchedName, cacheKey });
+    }
+  }
+  return targets;
+}
+
 /** Scans configured ROM roots, identifies files against DAT data, and enriches matches via IGDB. */
 export async function runPipeline(
   db: JsonDb,
@@ -77,18 +108,16 @@ export async function runPipeline(
       ? { clientId: config.twitchClientId, clientSecret: config.twitchClientSecret }
       : null;
 
+  // Phase 1: identify every file (fast — hashing/filename lookups, no network)
+  // and record it, before touching IGDB at all.
+  const identified: { file: ScannedFile; matchedName: string | null }[] = [];
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
-    onProgress({
-      phase: 'identifying',
-      current: i + 1,
-      total: files.length,
-      message: file.filename,
-    });
+    onProgress({ phase: 'identifying', current: i + 1, total: files.length, message: file.filename });
 
     const lookup = datLookups.get(file.consoleId)!;
     const id = await identifyFile(file, lookup);
-    const romId = upsertRom(db, {
+    upsertRom(db, {
       path: file.path,
       filename: file.filename,
       console_id: file.consoleId,
@@ -98,36 +127,44 @@ export async function runPipeline(
       region: id.region,
       match_confidence: id.confidence,
     });
+    identified.push({ file, matchedName: id.matchedName });
+  }
 
-    if (creds && id.matchedName) {
-      const cacheKey = `${file.consoleId}:${id.matchedName.toLowerCase()}`;
-      if (!hasCachedIgdb(db, cacheKey)) {
+  // Phase 2: enrich, now that we know exactly how many distinct new lookups
+  // are needed — lets the UI show a real "N of M" count and ETA rather than
+  // riding along on the file-scan progress bar, which finishes almost
+  // instantly and gives no sense of how long the IGDB-rate-limited part
+  // (the genuinely slow part on a big first scan) will actually take.
+  if (creds) {
+    const targets = computeEnrichTargets(db, identified);
+    for (let i = 0; i < targets.length; i++) {
+      const target = targets[i];
+      const remaining = targets.length - (i + 1);
+      onProgress({
+        phase: 'enriching',
+        current: i + 1,
+        total: targets.length,
+        message: `Looking up "${target.matchedName}" on IGDB…`,
+        etaSeconds: Math.round((remaining * IGDB_REQUEST_SPACING_MS) / 1000),
+      });
+      const consoleDef = consoleById(target.consoleId);
+      try {
+        const resolution = await resolveTitle(creds, target.matchedName, consoleDef.igdbPlatformId);
+        setCachedIgdb(db, target.cacheKey, resolution.info, resolution.quality);
+      } catch {
+        // Request itself failed (network blip, IGDB rate-limit, etc.) — do NOT
+        // cache this as "no match", so a later rescan retries it instead of
+        // permanently treating a transient failure as a confirmed non-match.
         onProgress({
           phase: 'enriching',
           current: i + 1,
-          total: files.length,
-          message: `Looking up "${id.matchedName}" on IGDB…`,
+          total: targets.length,
+          message: `IGDB lookup failed for "${target.matchedName}", will retry on next scan`,
+          etaSeconds: Math.round((remaining * IGDB_REQUEST_SPACING_MS) / 1000),
         });
-        const consoleDef = consoleById(file.consoleId);
-        try {
-          const resolution = await resolveTitle(creds, id.matchedName, consoleDef.igdbPlatformId);
-          setCachedIgdb(db, cacheKey, resolution.info, resolution.quality);
-        } catch {
-          // Request itself failed (network blip, IGDB rate-limit, etc.) — do NOT
-          // cache this as "no match", so a later rescan retries it instead of
-          // permanently treating a transient failure as a confirmed non-match.
-          onProgress({
-            phase: 'enriching',
-            current: i + 1,
-            total: files.length,
-            message: `IGDB lookup failed for "${id.matchedName}", will retry on next scan`,
-          });
-        }
-        await sleep(IGDB_REQUEST_SPACING_MS);
       }
+      await sleep(IGDB_REQUEST_SPACING_MS);
     }
-
-    void romId;
   }
 
   // Remove stale entries from previous scans (a removed ROM root, or a file

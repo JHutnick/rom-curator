@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react';
 import type { AppConfig, CuratedRom, CurationStatus, ScanProgress } from '../shared/types';
+import { formatDuration } from '../shared/curationHelpers';
 import SetupScreen from './SetupScreen';
 import ReviewScreen from './ReviewScreen';
+
+const PHASE_LABEL: Record<ScanProgress['phase'], string> = {
+  scanning: 'Scanning ROM folders…',
+  identifying: 'Identifying games…',
+  enriching: 'Fetching ratings from IGDB…',
+  done: 'Done',
+};
 
 const EMPTY_CONFIG: AppConfig = {
   romRoots: [],
@@ -137,11 +145,25 @@ export default function App() {
     const pct = progress && progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
     return (
       <div className="center-message">
-        <h2>Scanning your collection…</h2>
+        <h2>{progress ? PHASE_LABEL[progress.phase] : 'Scanning your collection…'}</h2>
         <div className="progress-bar">
           <div className="progress-fill" style={{ width: `${pct}%` }} />
         </div>
+        {progress?.phase === 'enriching' && (
+          <p className="scan-count">
+            {progress.current} of {progress.total} new lookups
+            {progress.etaSeconds != null && progress.etaSeconds > 0
+              ? ` — about ${formatDuration(progress.etaSeconds)} left`
+              : ''}
+          </p>
+        )}
         <p>{progress?.message ?? 'Starting…'}</p>
+        {progress?.phase === 'enriching' && (
+          <p className="scan-note">
+            IGDB limits how fast ratings can be fetched, so a first scan across several consoles
+            can take a while — this is expected, not stuck.
+          </p>
+        )}
       </div>
     );
   }

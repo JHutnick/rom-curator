@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeDuplicateSkipIds, formatBytes, formatCount, regionRank } from '../curationHelpers';
+import { computeDuplicateSkipIds, formatBytes, formatCount, formatDuration, regionRank } from '../curationHelpers';
 import type { CuratedRom } from '../types';
 
 describe('formatBytes', () => {
@@ -28,6 +28,18 @@ describe('formatCount', () => {
 
   it('abbreviates millions', () => {
     expect(formatCount(2_300_000)).toBe('2.3M');
+  });
+});
+
+describe('formatDuration', () => {
+  it('shows seconds only under a minute', () => {
+    expect(formatDuration(45)).toBe('45s');
+    expect(formatDuration(0)).toBe('0s');
+  });
+
+  it('shows minutes and seconds above a minute', () => {
+    expect(formatDuration(150)).toBe('2m 30s');
+    expect(formatDuration(60)).toBe('1m');
   });
 });
 

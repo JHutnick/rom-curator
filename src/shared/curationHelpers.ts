@@ -22,6 +22,14 @@ export function formatCount(n: number): string {
   return `${(n / 1_000_000).toFixed(1)}M`;
 }
 
+/** Human-readable duration, e.g. 45 -> "45s", 150 -> "2m 30s", 90 -> "1m 30s". */
+export function formatDuration(totalSeconds: number): string {
+  if (totalSeconds < 60) return `${totalSeconds}s`;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+}
+
 /** Lower = more preferred region, used to pick the "keeper" among duplicate/variant copies of a game. */
 export function regionRank(region: string | null): number {
   if (!region) return 5;

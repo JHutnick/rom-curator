@@ -117,6 +117,29 @@ export default function ReviewScreen({
     return { keep, maybe, skip, undecided, keptSizeBytes };
   }, [roms]);
 
+  // Per-console breakdown — independent of the current filters, so it always
+  // shows the full picture ("which consoles still need review work") even
+  // while you're zoomed into a specific filtered view elsewhere on screen.
+  const perConsoleStats = useMemo(() => {
+    const byConsole = new Map<ConsoleId, { keep: number; maybe: number; skip: number; undecided: number; total: number }>();
+    for (const r of roms) {
+      const entry = byConsole.get(r.consoleId) ?? { keep: 0, maybe: 0, skip: 0, undecided: 0, total: 0 };
+      entry.total++;
+      if (r.status === 'keep') entry.keep++;
+      else if (r.status === 'maybe') entry.maybe++;
+      else if (r.status === 'skip') entry.skip++;
+      else entry.undecided++;
+      byConsole.set(r.consoleId, entry);
+    }
+    return CONSOLES.filter((c) => byConsole.has(c.id)).map((c) => ({ console: c, stats: byConsole.get(c.id)! }));
+  }, [roms]);
+
+  function jumpTo(consoleId: ConsoleId, status: CurationStatus) {
+    const alreadyThere = consoleFilter === consoleId && statusFilter === status;
+    setConsoleFilter(alreadyThere ? 'all' : consoleId);
+    setStatusFilter(alreadyThere ? 'all' : status);
+  }
+
   return (
     <div className="review-screen">
       <div className="toolbar">
@@ -235,6 +258,42 @@ export default function ReviewScreen({
         <span className="spacer" />
         <span>{formatBytes(stats.keptSizeBytes)} to export</span>
       </div>
+
+      {perConsoleStats.length > 1 && (
+        <div className="console-summary">
+          <div className="console-summary-row console-summary-header-row">
+            <span>Console</span>
+            <span>Total</span>
+            <span>Keep</span>
+            <span>Maybe</span>
+            <span>Skip</span>
+            <span>Undecided</span>
+          </div>
+          {perConsoleStats.map(({ console: c, stats: cs }) => (
+            <div className="console-summary-row" key={c.id}>
+              <button
+                className={`console-summary-name${consoleFilter === c.id ? ' active' : ''}`}
+                onClick={() => setConsoleFilter(consoleFilter === c.id ? 'all' : c.id)}
+              >
+                {c.label}
+              </button>
+              <span className="console-summary-total">{cs.total}</span>
+              <button className="stat stat-keep" onClick={() => jumpTo(c.id, 'keep')}>
+                {cs.keep}
+              </button>
+              <button className="stat stat-maybe" onClick={() => jumpTo(c.id, 'maybe')}>
+                {cs.maybe}
+              </button>
+              <button className="stat stat-skip" onClick={() => jumpTo(c.id, 'skip')}>
+                {cs.skip}
+              </button>
+              <button className="stat stat-undecided" onClick={() => jumpTo(c.id, 'undecided')}>
+                {cs.undecided}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {consoleGroups ? (
         consoleGroups.map(({ console: c, roms: consoleRoms }) => (
