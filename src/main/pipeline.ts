@@ -1,5 +1,5 @@
 import { CONSOLES, consoleById } from './consoleConfig';
-import { scanRoots, identifyFile } from './scanner';
+import { scanRoots, identifyFile, isRootAccessible } from './scanner';
 import { parseDatFile, type DatLookup } from './datParser';
 import { findDatFilePath } from './datFileCheck';
 import { resolveTitle, type IgdbCredentials } from './igdbClient';
@@ -10,9 +10,10 @@ import {
   setCachedIgdb,
   getCurationMap,
   listRoms,
+  pruneRomsNotIn,
   type JsonDb,
 } from './db';
-import type { AppConfig, CuratedRom, ScanProgress } from '../shared/types';
+import type { AppConfig, ConsoleId, CuratedRom, RomRoot, ScanProgress } from '../shared/types';
 
 export type ProgressCb = (p: ScanProgress) => void;
 
@@ -40,6 +41,23 @@ async function loadDatLookups(datFolder: string): Promise<Map<string, DatLookup>
     }
   }
   return lookups;
+}
+
+/**
+ * Which consoles are safe to prune stale entries for on this scan. A console is
+ * "protected" (excluded) only if it's still configured but its root couldn't be
+ * read this run (e.g. an external drive briefly disconnected) — that's the one
+ * ambiguous case where "zero files found" might not mean "zero files exist". A
+ * console removed from Setup entirely is NOT protected: that's exactly the case
+ * that should get cleaned up (a real bug hit in practice — an old console's
+ * entries survived indefinitely after its ROM root was removed from Setup).
+ */
+export async function computeEligibleConsolesForPruning(romRoots: RomRoot[]): Promise<Set<ConsoleId>> {
+  const protectedConsoles = new Set<ConsoleId>();
+  for (const root of romRoots) {
+    if (!(await isRootAccessible(root.path))) protectedConsoles.add(root.consoleId);
+  }
+  return new Set(CONSOLES.map((c) => c.id).filter((id) => !protectedConsoles.has(id)));
 }
 
 /** Scans configured ROM roots, identifies files against DAT data, and enriches matches via IGDB. */
@@ -112,7 +130,18 @@ export async function runPipeline(
     void romId;
   }
 
-  onProgress({ phase: 'done', current: files.length, total: files.length, message: 'Done' });
+  // Remove stale entries from previous scans (a removed ROM root, or a file
+  // that's since been deleted/moved).
+  const eligibleConsoles = await computeEligibleConsolesForPruning(config.romRoots);
+  const currentKeys = new Set(files.map((f) => `${f.path}::${f.filename}`));
+  const prunedCount = pruneRomsNotIn(db, currentKeys, eligibleConsoles);
+
+  onProgress({
+    phase: 'done',
+    current: files.length,
+    total: files.length,
+    message: prunedCount > 0 ? `Done — removed ${prunedCount} stale entries from previous scans` : 'Done',
+  });
   return buildCuratedList(db);
 }
 

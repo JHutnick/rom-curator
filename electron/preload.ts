@@ -19,6 +19,7 @@ const api: RomCuratorApi = {
   exportKept: () => ipcRenderer.invoke(IPC.exportRun),
   openExportFolder: () => ipcRenderer.invoke(IPC.openExportFolder),
   checkDatFiles: (datFolder: string) => ipcRenderer.invoke(IPC.checkDatFiles, datFolder),
+  resetData: () => ipcRenderer.invoke(IPC.resetData),
 };
 
 contextBridge.exposeInMainWorld('romCurator', api);

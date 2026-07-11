@@ -3,7 +3,7 @@ import path from 'node:path';
 import { IPC } from '../src/shared/ipc';
 import type { AppConfig, CurationStatus } from '../src/shared/types';
 import { loadConfig, saveConfig } from '../src/main/configStore';
-import { openDb, defaultDbPath, setCurationStatus } from '../src/main/db';
+import { openDb, defaultDbPath, setCurationStatus, resetRomsAndCuration } from '../src/main/db';
 import { runPipeline, buildCuratedList } from '../src/main/pipeline';
 import { exportRoms, type ExportableRom } from '../src/main/exporter';
 import { checkDatFiles } from '../src/main/datFileCheck';
@@ -117,6 +117,22 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle(IPC.checkDatFiles, async (_event, datFolder: string) => checkDatFiles(datFolder));
+
+  ipcMain.handle(IPC.resetData, async () => {
+    const result = await dialog.showMessageBox(mainWindow!, {
+      type: 'warning',
+      buttons: ['Cancel', 'Reset Everything'],
+      defaultId: 0,
+      cancelId: 0,
+      title: 'Reset all data?',
+      message: 'This clears every scanned ROM and all your keep/maybe/skip decisions.',
+      detail:
+        'Your ROM/DAT folder settings and cached IGDB ratings are kept, so a rescan afterward is still fast. This cannot be undone.',
+    });
+    if (result.response !== 1) return { reset: false };
+    resetRomsAndCuration(db);
+    return { reset: true };
+  });
 
   createWindow();
 

@@ -11,6 +11,7 @@ export const IPC = {
   exportRun: 'export:run',
   openExportFolder: 'export:openFolder',
   checkDatFiles: 'dat:check',
+  resetData: 'data:reset',
 } as const;
 
 export interface RomCuratorApi {
@@ -24,6 +25,10 @@ export interface RomCuratorApi {
   exportKept(): Promise<{ exportedCount: number; copiedCount: number }>;
   openExportFolder(): Promise<void>;
   checkDatFiles(datFolder: string): Promise<Record<ConsoleId, boolean>>;
+  /** Shows a native confirmation dialog; returns whether the user actually
+   *  confirmed and the reset happened. Clears scanned roms + curation only —
+   *  the IGDB ratings cache is kept so a rescan is still fast afterward. */
+  resetData(): Promise<{ reset: boolean }>;
 }
 
 declare global {

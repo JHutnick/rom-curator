@@ -11,6 +11,15 @@ export default function SetupScreen({ initial, onSave }: Props) {
   const [config, setConfig] = useState<AppConfig>(initial);
   const [datStatus, setDatStatus] = useState<Record<ConsoleId, boolean> | null>(null);
   const [checkingDats, setCheckingDats] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+
+  async function handleReset() {
+    setResetMessage(null);
+    const { reset } = await window.romCurator.resetData();
+    if (reset) {
+      setResetMessage('All scanned ROMs and curation decisions have been cleared. Click "Save & continue" to rescan.');
+    }
+  }
 
   async function checkDats(datFolder: string) {
     if (!datFolder) {
@@ -179,6 +188,19 @@ export default function SetupScreen({ initial, onSave }: Props) {
       <button className="primary" disabled={!canSave} onClick={() => onSave(config)}>
         Save &amp; continue
       </button>
+
+      <section className="danger-zone">
+        <h2>Danger zone</h2>
+        <p className="hint">
+          Clears every scanned ROM and all keep/maybe/skip decisions, for a genuine fresh start.
+          Your folder settings and cached IGDB ratings are kept, so a rescan afterward is still
+          fast. This cannot be undone.
+        </p>
+        {resetMessage && <p className="reset-message">{resetMessage}</p>}
+        <button className="danger" onClick={handleReset}>
+          Reset all data…
+        </button>
+      </section>
     </div>
   );
 }

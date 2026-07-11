@@ -30,6 +30,7 @@ export default function ReviewScreen({
   const [consoleFilter, setConsoleFilter] = useState<ConsoleId | 'all'>('all');
   const [regionFilter, setRegionFilter] = useState<string>('all');
   const [confidenceFilter, setConfidenceFilter] = useState<MatchConfidence | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<CurationStatus | 'all'>('all');
   const [minRating, setMinRating] = useState(0);
   const [minRatingCount, setMinRatingCount] = useState(0);
   const [sortMode, setSortMode] = useState<SortMode>('rating');
@@ -46,6 +47,7 @@ export default function ReviewScreen({
       .filter((r) => consoleFilter === 'all' || r.consoleId === consoleFilter)
       .filter((r) => regionFilter === 'all' || r.region === regionFilter)
       .filter((r) => confidenceFilter === 'all' || r.matchConfidence === confidenceFilter)
+      .filter((r) => statusFilter === 'all' || r.status === statusFilter)
       .filter((r) => {
         const rating = r.igdb?.aggregatedRating ?? r.igdb?.rating ?? 0;
         return rating >= minRating;
@@ -68,7 +70,7 @@ export default function ReviewScreen({
         const rb = b.igdb?.aggregatedRating ?? b.igdb?.rating ?? -1;
         return rb - ra;
       });
-  }, [roms, consoleFilter, regionFilter, confidenceFilter, minRating, minRatingCount, sortMode, search]);
+  }, [roms, consoleFilter, regionFilter, confidenceFilter, statusFilter, minRating, minRatingCount, sortMode, search]);
 
   // Grouped by console when there's more than one system in view — a flat grid
   // of thousands of cards across 17 consoles stops being scannable otherwise.
@@ -135,6 +137,14 @@ export default function ReviewScreen({
             <option value="filename-match">Filename match</option>
             <option value="translated-hack">Translated/Hacked</option>
             <option value="unmatched">Unidentified</option>
+          </select>
+
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as CurationStatus | 'all')}>
+            <option value="all">Any status</option>
+            <option value="undecided">Undecided</option>
+            <option value="keep">Keep</option>
+            <option value="maybe">Maybe</option>
+            <option value="skip">Skip</option>
           </select>
 
           <input
@@ -204,10 +214,16 @@ export default function ReviewScreen({
         <span>
           {filtered.length} of {roms.length} shown
         </span>
-        <span className="stat stat-keep">{stats.keep} keep</span>
-        <span className="stat stat-maybe">{stats.maybe} maybe</span>
-        <span className="stat stat-skip">{stats.skip} skip</span>
-        <span className="stat stat-undecided">{stats.undecided} undecided</span>
+        {(['keep', 'maybe', 'skip', 'undecided'] as const).map((s) => (
+          <button
+            key={s}
+            className={`stat stat-${s}${statusFilter === s ? ' stat-active' : ''}`}
+            title={`Click to ${statusFilter === s ? 'clear this' : 'filter to this'} status`}
+            onClick={() => setStatusFilter(statusFilter === s ? 'all' : s)}
+          >
+            {stats[s]} {s}
+          </button>
+        ))}
         <span className="spacer" />
         <span>{formatBytes(stats.keptSizeBytes)} to export</span>
       </div>

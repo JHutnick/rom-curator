@@ -137,6 +137,44 @@ export class JsonDb {
   getCurationMap(): Map<number, CurationStatus> {
     return new Map(Object.entries(this.data.curation).map(([id, status]) => [Number(id), status]));
   }
+
+  /**
+   * Removes rom rows not present in `keepKeys` (each key is `${path}::${filename}`)
+   * — i.e. anything from a previous scan that a fresh scan no longer finds, because
+   * its ROM root was removed from Setup or the file itself is gone. Without this,
+   * stale entries accumulate forever across rescans (a real bug hit in practice: a
+   * leftover NES entry survived after its ROM root was removed).
+   *
+   * Only considers rows whose console is in `eligibleConsoleIds` — the caller
+   * should exclude any console whose root couldn't actually be read this run
+   * (e.g. an external drive briefly disconnected), so a transient I/O failure
+   * doesn't get misread as "this console legitimately has zero files now" and
+   * wipe out real curation data for it.
+   */
+  pruneRomsNotIn(keepKeys: Set<string>, eligibleConsoleIds: Set<ConsoleId>): number {
+    const toRemove = this.data.roms.filter(
+      (r) => eligibleConsoleIds.has(r.console_id) && !keepKeys.has(`${r.path}::${r.filename}`),
+    );
+    if (toRemove.length === 0) return 0;
+    const removeIds = new Set(toRemove.map((r) => r.id));
+    this.data.roms = this.data.roms.filter((r) => !removeIds.has(r.id));
+    for (const id of removeIds) delete this.data.curation[id];
+    this.save();
+    return toRemove.length;
+  }
+
+  /**
+   * Clears all scanned roms and curation decisions for a genuine fresh start.
+   * Deliberately keeps the IGDB cache — that's expensive, rate-limited network
+   * data keyed by game title, not tied to which physical files are currently
+   * scanned, so a rescan after reset can still resolve ratings instantly.
+   */
+  resetRomsAndCuration(): void {
+    this.data.roms = [];
+    this.data.nextRomId = 1;
+    this.data.curation = {};
+    this.save();
+  }
 }
 
 export function openDb(dbPath: string): JsonDb {
@@ -173,4 +211,12 @@ export function setCurationStatus(db: JsonDb, romId: number, status: CurationSta
 
 export function getCurationMap(db: JsonDb): Map<number, CurationStatus> {
   return db.getCurationMap();
+}
+
+export function pruneRomsNotIn(db: JsonDb, keepKeys: Set<string>, eligibleConsoleIds: Set<ConsoleId>): number {
+  return db.pruneRomsNotIn(keepKeys, eligibleConsoleIds);
+}
+
+export function resetRomsAndCuration(db: JsonDb): void {
+  db.resetRomsAndCuration();
 }

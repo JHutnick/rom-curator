@@ -129,6 +129,16 @@ h1, h2 { font-weight: 600; }
   font-size: 13px;
   border-bottom: 1px solid var(--border);
 }
+.danger-zone {
+  margin-top: 20px;
+  border-color: var(--skip) !important;
+}
+.danger-zone h2 { color: var(--skip); }
+.reset-message {
+  font-size: 13px;
+  color: var(--keep);
+  margin: 8px 0;
+}
 .rom-root-list li { gap: 10px; }
 .rom-root-path {
   flex: 1;
@@ -168,6 +178,7 @@ button:hover { filter: brightness(1.15); }
 button:disabled { opacity: 0.5; cursor: default; }
 button.primary { background: var(--accent); color: white; }
 button.active { background: var(--accent); color: white; }
+button.danger { background: var(--skip); color: #2a0a0a; font-weight: 600; }
 
 .toolbar {
   display: flex;
@@ -223,7 +234,14 @@ button.active { background: var(--accent); color: white; }
 }
 .stat {
   font-weight: 600;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 13px;
 }
+.stat:hover { background: var(--panel); filter: none; }
+.stat-active { border-color: currentColor; background: var(--panel); }
 .stat-keep { color: var(--keep); }
 .stat-maybe { color: var(--maybe); }
 .stat-skip { color: var(--skip); }

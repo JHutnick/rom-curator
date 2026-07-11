@@ -36,6 +36,21 @@ export async function scanRoots(roots: RomRoot[]): Promise<ScannedFile[]> {
   return found;
 }
 
+/**
+ * True if a ROM root's top-level folder can currently be read at all. Used to
+ * gate stale-data pruning: an external drive that's briefly disconnected would
+ * otherwise look identical to "this console legitimately has zero files now",
+ * which would wrongly wipe out real curation data for it.
+ */
+export async function isRootAccessible(rootPath: string): Promise<boolean> {
+  try {
+    await readdir(rootPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function walk(dir: string, consoleId: ConsoleId, found: ScannedFile[]): Promise<void> {
   let entries;
   try {
