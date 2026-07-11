@@ -160,6 +160,68 @@ export const CONSOLES: ConsoleDef[] = [
     igdbPlatformId: 32,
     datFile: 'Sega - Saturn.dat',
   },
+  {
+    id: '3ds',
+    label: 'Nintendo 3DS',
+    // Cart dumps can run into several GB and are often encrypted — treated
+    // like a disc console (filename-match, no hashing) rather than assuming
+    // cartridge-sized like the other Nintendo handhelds.
+    extensions: ['.3ds', '.cia'],
+    hashOnScan: false,
+    igdbPlatformId: 37,
+    datFile: 'Nintendo - Nintendo 3DS.dat',
+  },
+  {
+    id: 'psp',
+    label: 'PSP',
+    // .cso is a compressed UMD ISO (maxcso) — Redump's DAT only lists the raw
+    // .iso, but filename-match doesn't care about container format, only the
+    // extension-stripped name, so .cso dumps still resolve correctly.
+    extensions: ['.iso', '.cso'],
+    hashOnScan: false,
+    igdbPlatformId: 38,
+    datFile: 'Sony - PlayStation Portable.dat',
+  },
+  {
+    id: '3do',
+    label: '3DO',
+    extensions: ['.iso', '.cue', '.bin', '.chd'],
+    hashOnScan: false,
+    igdbPlatformId: 50,
+    datFile: 'Panasonic - 3DO Interactive Multiplayer.dat',
+  },
+  {
+    id: 'atari5200',
+    label: 'Atari 5200',
+    extensions: ['.a52'],
+    hashOnScan: true,
+    igdbPlatformId: 66,
+    datFile: 'Atari - 5200.dat',
+  },
+  {
+    id: 'atari7800',
+    label: 'Atari 7800',
+    extensions: ['.a78'],
+    hashOnScan: true,
+    igdbPlatformId: 60,
+    datFile: 'Atari - 7800.dat',
+  },
+  {
+    id: 'lynx',
+    label: 'Atari Lynx',
+    extensions: ['.lnx'],
+    hashOnScan: true,
+    igdbPlatformId: 61,
+    datFile: 'Atari - Lynx.dat',
+  },
+  {
+    id: 'jaguar',
+    label: 'Atari Jaguar',
+    extensions: ['.j64'],
+    hashOnScan: true,
+    igdbPlatformId: 62,
+    datFile: 'Atari - Jaguar.dat',
+  },
 ];
 
 /** Folder-basename hints for auto-suggesting a console when adding a ROM root
@@ -201,6 +263,20 @@ const FOLDER_NAME_HINTS: Record<string, ConsoleId> = {
   dreamcast: 'dreamcast',
   dc: 'dreamcast',
   saturn: 'saturn',
+  '3ds': '3ds',
+  n3ds: '3ds',
+  psp: 'psp',
+  '3do': '3do',
+  atari5200: 'atari5200',
+  a5200: 'atari5200',
+  5200: 'atari5200',
+  atari7800: 'atari7800',
+  a7800: 'atari7800',
+  7800: 'atari7800',
+  lynx: 'lynx',
+  atarilynx: 'lynx',
+  jaguar: 'jaguar',
+  atarijaguar: 'jaguar',
 };
 
 /** Normalizes a folder name for hint lookup: lowercase, strip non-alphanumerics. */

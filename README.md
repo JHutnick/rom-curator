@@ -54,11 +54,18 @@ where your ROMs come from.
 | Game Gear | hash-verified | `Sega - Game Gear.dat` |
 | PC Engine / TurboGrafx-16 | hash-verified | `NEC - PC Engine - TurboGrafx-16.dat` |
 | Atari 2600 | hash-verified | `Atari - 2600.dat` |
+| Atari 5200 | hash-verified | `Atari - 5200.dat` |
+| Atari 7800 | hash-verified | `Atari - 7800.dat` |
+| Atari Lynx | hash-verified | `Atari - Lynx.dat` |
+| Atari Jaguar | hash-verified | `Atari - Jaguar.dat` |
 | PlayStation | filename-match | `Sony - PlayStation.dat` |
 | PlayStation 2 | filename-match | `Sony - PlayStation 2.dat` |
+| PSP | filename-match | `Sony - PlayStation Portable.dat` |
 | GameCube | filename-match | `Nintendo - GameCube.dat` |
+| Nintendo 3DS | filename-match | `Nintendo - Nintendo 3DS.dat` |
 | Dreamcast | filename-match | `Sega - Dreamcast.dat` |
 | Saturn | filename-match | `Sega - Saturn.dat` |
+| 3DO | filename-match | `Panasonic - 3DO Interactive Multiplayer.dat` |
 
 You don't need to rename downloaded DAT files to match exactly — the app
 matches by the console name prefix and tolerates the descriptive suffixes

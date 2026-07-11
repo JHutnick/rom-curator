@@ -15,7 +15,14 @@ export type ConsoleId =
   | 'ps2'
   | 'gamecube'
   | 'dreamcast'
-  | 'saturn';
+  | 'saturn'
+  | '3ds'
+  | 'psp'
+  | 'atari5200'
+  | 'atari7800'
+  | 'lynx'
+  | 'jaguar'
+  | '3do';
 
 export type MatchConfidence = 'hash-verified' | 'filename-match' | 'translated-hack' | 'unmatched';
 

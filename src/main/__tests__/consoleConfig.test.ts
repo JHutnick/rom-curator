@@ -77,6 +77,16 @@ describe('matchesDatFilename', () => {
     expect(matchesDatFilename('Sony - PlayStation 2.dat', consoleById('ps1'))).toBe(false);
   });
 
+  it('does not let PS1 false-match a PSP DAT ("PlayStation" prefixes "PlayStation Portable")', () => {
+    expect(matchesDatFilename('Sony - PlayStation Portable.dat', consoleById('ps1'))).toBe(false);
+    expect(matchesDatFilename('Sony - PlayStation Portable.dat', consoleById('psp'))).toBe(true);
+  });
+
+  it('does not let Nintendo DS false-match a 3DS DAT', () => {
+    expect(matchesDatFilename('Nintendo - Nintendo 3DS.dat', consoleById('nds'))).toBe(false);
+    expect(matchesDatFilename('Nintendo - Nintendo 3DS.dat', consoleById('3ds'))).toBe(true);
+  });
+
   it('rejects a completely unrelated filename', () => {
     expect(matchesDatFilename('Nintendo - Nintendo 64.dat', consoleById('ps2'))).toBe(false);
   });
